@@ -27,8 +27,9 @@
 /* USER CODE BEGIN Includes */
 #include <stdarg.h>
 #include <string.h>
+#include "flexible_button.h"
  
-#define RXBUFFERSIZE  256     //�??大接收字节数
+#define RXBUFFERSIZE  256     //最大接收字节数
 uint8_t RxBuffer[RXBUFFERSIZE];   //接收数据
 uint8_t RxData = 0;
 uint8_t Uart1_Rx_Cnt = 0;		//接收缓冲计数
@@ -70,10 +71,103 @@ void test_app(void)
   int a = 7;
   int b = 0;
   int c = 0;
-  c = a++;  //a�ȸ�c��ֵ��Ȼ�����Լ�1��Ϊ8������������c = 7�� a = 8
+  c = a++;
   b = a;
   printf("a = %d, b = %d, c = %d\r\n", a, b, c);
 }
+
+#define ENUM_TO_STR(e) (#e)
+
+typedef enum
+{
+    USER_BUTTON_0 = 0,
+    USER_BUTTON_MAX
+} user_button_t;
+
+static char *enum_event_string[] = {
+    ENUM_TO_STR(FLEX_BTN_PRESS_DOWN),
+    ENUM_TO_STR(FLEX_BTN_PRESS_CLICK),
+    ENUM_TO_STR(FLEX_BTN_PRESS_DOUBLE_CLICK),
+    ENUM_TO_STR(FLEX_BTN_PRESS_REPEAT_CLICK),
+    ENUM_TO_STR(FLEX_BTN_PRESS_SHORT_START),
+    ENUM_TO_STR(FLEX_BTN_PRESS_SHORT_UP),
+    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_START),
+    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_UP),
+    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_HOLD),
+    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_HOLD_UP),
+    ENUM_TO_STR(FLEX_BTN_PRESS_MAX),
+    ENUM_TO_STR(FLEX_BTN_PRESS_NONE),
+};
+
+static char *enum_btn_id_string[] = {
+    ENUM_TO_STR(USER_BUTTON_0),
+    ENUM_TO_STR(USER_BUTTON_MAX),
+};
+
+static flex_button_t keyGroup[USER_BUTTON_MAX];
+
+static void vKeyEvtCb(void *arg)
+{
+    flex_button_t *btn = (flex_button_t *)arg;
+    printf("id: [%d - %s]  event: [%d - %30s]  repeat: %d\r\n",
+           btn->id, enum_btn_id_string[btn->id],
+           btn->event, enum_event_string[btn->event],
+           btn->click_cnt);
+    switch (btn->id)
+    {
+    case USER_BUTTON_0:
+    {
+        switch (btn->event)
+        {
+        case FLEX_BTN_PRESS_CLICK:
+        {
+            printf("key click!\r\n");
+        }
+        break;
+        case FLEX_BTN_PRESS_DOUBLE_CLICK:
+        {
+            printf("double click!\r\n");
+        }
+        break;
+        case FLEX_BTN_PRESS_LONG_HOLD:
+        {
+            printf("key long hold!\r\n");
+        }
+        break;
+
+        default:
+            break;
+        }
+    }
+    break;
+    }
+}
+
+
+static uint8_t u8KeyRead(void *arg)
+{
+  return (uint8_t)HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_6);
+}
+
+void register_key(void)
+{
+	int i = 0;
+  memset(keyGroup, 0, sizeof(keyGroup));
+  for (i = 0; i < USER_BUTTON_MAX; i++)
+  {
+      keyGroup[i].id = i;
+      keyGroup[i].usr_button_read = u8KeyRead;
+      keyGroup[i].cb = vKeyEvtCb;
+      keyGroup[i].pressed_logic_level = 0;
+      keyGroup[i].debounce_tick = 20;
+      keyGroup[i].max_multiple_clicks_interval = FLEX_MS_TO_SCAN_CNT(500); // 单击间隔500ms
+      keyGroup[i].short_press_start_tick = FLEX_MS_TO_SCAN_CNT(1500);
+      keyGroup[i].long_press_start_tick = FLEX_MS_TO_SCAN_CNT(3000);
+      keyGroup[i].long_hold_start_tick = FLEX_MS_TO_SCAN_CNT(5000);
+      flex_button_register(&keyGroup[i]);
+  }  
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -111,6 +205,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
   printf("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
+  register_key();
   // test_app();
   /* USER CODE END 2 */
 
@@ -122,6 +217,8 @@ int main(void)
     MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
+    flex_button_scan();
+    HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
@@ -179,7 +276,7 @@ void def_printf(const char *format, ...)
   va_list args;
   char pbuff[256] = {0};
 
-  // 初�?��? args 以获�?? format 之后的参�??
+  // 初�?��? args 以获�?? format 之后的参�??
   va_start(args, format);
 
   // // 调用 vprintf，将格式化字符串和参数列表输出到标准输出
@@ -191,7 +288,7 @@ void def_printf(const char *format, ...)
   // 清理 args
   va_end(args);
 
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�??测UART发�?�结�??
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�??测UART发�?�结�??
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -203,8 +300,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
    */
 
   // def_printf("%c", RxData);
-  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�??
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�??测UART发�?�结�??
+  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�??
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�??测UART发�?�结�??
 	
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 }
