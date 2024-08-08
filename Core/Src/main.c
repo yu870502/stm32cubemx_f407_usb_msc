@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "fatfs.h"
 #include "usart.h"
 #include "usb_host.h"
@@ -29,7 +30,7 @@
 #include <string.h>
 #include "flexible_button.h"
  
-#define RXBUFFERSIZE  256     //最大接收字节数
+#define RXBUFFERSIZE  256     //�?大接收字节数
 uint8_t RxBuffer[RXBUFFERSIZE];   //接收数据
 uint8_t RxData = 0;
 uint8_t Uart1_Rx_Cnt = 0;		//接收缓冲计数
@@ -58,8 +59,7 @@ uint8_t Uart1_Rx_Cnt = 0;		//接收缓冲计数
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void MX_USB_HOST_Process(void);
-
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -119,6 +119,12 @@ static void vKeyEvtCb(void *arg)
     {
         switch (btn->event)
         {
+        case FLEX_BTN_PRESS_DOWN:
+        {
+            printf("key down!\r\n");
+        }
+        break;
+
         case FLEX_BTN_PRESS_CLICK:
         {
             printf("key click!\r\n");
@@ -168,6 +174,16 @@ void register_key(void)
   }  
 }
 
+void key1_scan_task(void const * argument)
+{
+  for(;;)
+  {
+    flex_button_scan();
+    osDelay(1);
+  }
+}
+
+
 /* USER CODE END 0 */
 
 /**
@@ -200,24 +216,33 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_FATFS_Init();
-  MX_USB_HOST_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
   printf("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
   register_key();
   // test_app();
+
+  osThreadDef(key1_scan, key1_scan_task, osPriorityAboveNormal, 0, 1024);
+  osThreadId key1_scanTaskHandle = osThreadCreate(osThread(key1_scan), NULL);
+
   /* USER CODE END 2 */
+
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
-    flex_button_scan();
     HAL_Delay(1);
   }
   /* USER CODE END 3 */
@@ -276,7 +301,7 @@ void def_printf(const char *format, ...)
   va_list args;
   char pbuff[256] = {0};
 
-  // 初�?��? args 以获�?? format 之后的参�??
+  // 初�?��? args 以获�??? format 之后的参�???
   va_start(args, format);
 
   // // 调用 vprintf，将格式化字符串和参数列表输出到标准输出
@@ -288,7 +313,7 @@ void def_printf(const char *format, ...)
   // 清理 args
   va_end(args);
 
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�??测UART发�?�结�??
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�???测UART发�?�结�???
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -300,12 +325,33 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
    */
 
   // def_printf("%c", RxData);
-  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�??
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�??测UART发�?�结�??
+  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�???
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�???测UART发�?�结�???
 	
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 }
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
