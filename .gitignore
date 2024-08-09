@@ -5,3 +5,11 @@
 *.map
 *.uvprojx
 *.i
+*.d
+*.o
+*.htm
+*.lst
+*.lnp
+*.dep
+*.hex
+*.axf

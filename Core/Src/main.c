@@ -119,9 +119,16 @@ static void vKeyEvtCb(void *arg)
     {
         switch (btn->event)
         {
-        case FLEX_BTN_PRESS_DOWN:
+
+        case FLEX_BTN_PRESS_SHORT_UP:
         {
-            printf("key down!\r\n");
+            printf("key press short!\r\n");
+        }
+        break;
+
+        case FLEX_BTN_PRESS_LONG_UP:
+        {
+            printf("key press long!\r\n");
         }
         break;
 
@@ -130,11 +137,13 @@ static void vKeyEvtCb(void *arg)
             printf("key click!\r\n");
         }
         break;
+
         case FLEX_BTN_PRESS_DOUBLE_CLICK:
         {
             printf("double click!\r\n");
         }
         break;
+
         case FLEX_BTN_PRESS_LONG_HOLD:
         {
             printf("key long hold!\r\n");
@@ -179,7 +188,7 @@ void key1_scan_task(void const * argument)
   for(;;)
   {
     flex_button_scan();
-    osDelay(1);
+    osDelay(20);  //注意，这里间隔时间要与FLEX_BTN_SCAN_FREQ_HZ紧密联系
   }
 }
 
@@ -243,7 +252,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(1);
+    HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
@@ -301,7 +310,7 @@ void def_printf(const char *format, ...)
   va_list args;
   char pbuff[256] = {0};
 
-  // 初�?��? args 以获�??? format 之后的参�???
+  // 初始化args，获取format以后的参数（包括format，format本身就是参数，在获取没意义）
   va_start(args, format);
 
   // // 调用 vprintf，将格式化字符串和参数列表输出到标准输出
@@ -313,7 +322,7 @@ void def_printf(const char *format, ...)
   // 清理 args
   va_end(args);
 
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�???测UART发�?�结�???
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发送完毕
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)

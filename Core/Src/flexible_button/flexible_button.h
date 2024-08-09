@@ -33,7 +33,18 @@
 
 #include "stdint.h"
 
-#define FLEX_BTN_SCAN_FREQ_HZ 50 // How often flex_button_scan () is called
+/*
+How many times can flex_button_scan() be called in 1 second, Unit time/second.
+Example: If scanning 50 times per second, it is necessary to scan once every 20ms
+  for(;;)
+  {
+    flex_button_scan();
+    osDelay(20);    //Scan once every 20ms, closely related to the scanning frequency value FLEX_BTN_SCAN_FREQ_HZ
+  }
+*/  
+#define FLEX_BTN_SCAN_FREQ_HZ 50
+
+/* Convert ms to scan count */
 #define FLEX_MS_TO_SCAN_CNT(ms) (ms / (1000 / FLEX_BTN_SCAN_FREQ_HZ))
 
 /* Multiple clicks interval, default 300ms */
