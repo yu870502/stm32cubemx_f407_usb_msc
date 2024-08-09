@@ -3,7 +3,6 @@
 *.yul
 *.iex
 *.map
-*.uvprojx
 *.i
 *.d
 *.o
@@ -13,3 +12,4 @@
 *.dep
 *.hex
 *.axf
+.vscode/
