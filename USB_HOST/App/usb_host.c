@@ -110,7 +110,10 @@ static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id)
   Appli_state = APPLICATION_READY;
   //挂载文件系统
   Mount_FatFs();
-  FatFs_GetDiskInfo();  
+  FatFs_GetDiskInfo();
+  FatFs_ScanDir("0:/");
+  FatFs_WriteTXTFile("message.txt", 20, 0, 0);
+  FatFs_ReadTXTFile("message.txt");
   break;
 
   case HOST_USER_CONNECTION:

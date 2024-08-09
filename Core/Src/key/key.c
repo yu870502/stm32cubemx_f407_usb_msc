@@ -9,18 +9,18 @@
 #define ENUM_TO_STR(e) (#e)
 
 char *enum_btn_event_string[] = {
-    ENUM_TO_STR(FLEX_BTN_PRESS_DOWN),
-    ENUM_TO_STR(FLEX_BTN_PRESS_CLICK),
-    ENUM_TO_STR(FLEX_BTN_PRESS_DOUBLE_CLICK),
-    ENUM_TO_STR(FLEX_BTN_PRESS_REPEAT_CLICK),
-    ENUM_TO_STR(FLEX_BTN_PRESS_SHORT_START),
-    ENUM_TO_STR(FLEX_BTN_PRESS_SHORT_UP),
-    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_START),
-    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_UP),
-    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_HOLD),
-    ENUM_TO_STR(FLEX_BTN_PRESS_LONG_HOLD_UP),
-    ENUM_TO_STR(FLEX_BTN_PRESS_MAX),
-    ENUM_TO_STR(FLEX_BTN_PRESS_NONE),
+    ENUM_TO_STR(BTN_DOWN),
+    ENUM_TO_STR(BTN_CLICK),
+    ENUM_TO_STR(BTN_DOUBLE_CLICK),
+    ENUM_TO_STR(BTN_REPEAT_CLICK),
+    ENUM_TO_STR(BTN_SHORT_START),
+    ENUM_TO_STR(BTN_SHORT_UP),
+    ENUM_TO_STR(BTN_LONG_START),
+    ENUM_TO_STR(BTN_LONG_UP),
+    ENUM_TO_STR(BTN_LONG_HOLD_START),
+    ENUM_TO_STR(BTN_LONG_HOLD_UP),
+    ENUM_TO_STR(BTN_MAX),
+    ENUM_TO_STR(BTN_NONE),
 };
 
 flex_button_t keyGroup[USER_BUTTON_MAX];
@@ -44,54 +44,48 @@ void key_process_start()
 static void vKeysEvtCb(void *arg)
 {
     flex_button_t *btn = (flex_button_t *)arg;
-    printf("id: [%d]  event: [%d - %30s]  repeat: %d\r\n",
-           btn->id, btn->event, enum_btn_event_string[btn->event],
-           btn->click_cnt);
+    printf("id: [%d]  event: [%d - %20s]  repeat: %d\r\n",
+           btn->id, btn->event, enum_btn_event_string[btn->event], btn->click_cnt);
+
     switch (btn->id)
     {
         case USER_BUTTON_0:
         {
             switch (btn->event)
             {
-
-            case FLEX_BTN_PRESS_SHORT_UP:
-            {
-                printf("key press short!\r\n");
-            }
-            break;
-
-            case FLEX_BTN_PRESS_LONG_UP:
-            {
-                printf("key press long!\r\n");
-            }
-            break;
-
-            case FLEX_BTN_PRESS_CLICK:
-            {
-                printf("key click!\r\n");
-            }
-            break;
-
-            case FLEX_BTN_PRESS_LONG_HOLD:
-            {
-                printf("key long hold!\r\n");
-            }
-            break;
-
-            case FLEX_BTN_PRESS_DOUBLE_CLICK:
-            {
-                printf("double click!\r\n");
-            }
-            break;
-
-            case FLEX_BTN_PRESS_REPEAT_CLICK:
-            {
-                printf("repeat click!\r\n");
-            }
-            break;
-
-            default:
+                case BTN_CLICK:
+                {
+                    printf("key click!\r\n");
+                }
                 break;
+                case BTN_DOUBLE_CLICK:
+                {
+                    printf("double click!\r\n");
+                }
+                break;
+                case BTN_REPEAT_CLICK:
+                {
+                    printf("repeat click!\r\n");
+                }
+                break;								
+                case BTN_SHORT_UP:
+                {
+                    printf("key press short!\r\n");
+                }
+                break;
+                case BTN_LONG_UP:
+                {
+                    printf("key press long!\r\n");
+                }
+                break;
+                case BTN_LONG_HOLD_START:
+                {
+                    printf("key long hold!\r\n");
+                }
+                break;
+
+                default:
+                    break;
             }
         }
         break;

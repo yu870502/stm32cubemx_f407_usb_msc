@@ -134,14 +134,13 @@ void FatFs_GetDiskInfo(void)
 void FatFs_WriteTXTFile(TCHAR *filename,uint16_t year, uint8_t month, uint8_t day)
 {
 	FIL	file;
-	printf("\r\n*** Creating TXT file: %s ***\r\n", filename);
+	printf("Creating TXT file: %s\r\n", filename);
 	
 	FRESULT res = f_open(&file, filename, FA_CREATE_ALWAYS | FA_WRITE);
-	//打开/创建文件成功
 	if(res == FR_OK)
 	{
 		//字符串必须有换行符"\n"
-		TCHAR str[]="Line1: Hello, FatFs***\n";  
+		TCHAR str[]="Line1: Hello, FatFs\n";  
 		//不会写入结束符"\0"
 		f_puts(str, &file); 
 		
@@ -149,21 +148,20 @@ void FatFs_WriteTXTFile(TCHAR *filename,uint16_t year, uint8_t month, uint8_t da
 	}
 	else
 	{
-		printf("Open file error，error code: %d\r\n", res);
+		printf("Open file error, error code: %d\r\n", res);
 	}
-	//使用完毕关闭文件
-	f_close(&file);
+	
+	f_close(&file);	//使用完毕关闭文件
 }
  
 /*读取一个文本文件的内容*/
 void FatFs_ReadTXTFile(TCHAR *filename)
 {
-	printf("\r\n*** Reading TXT file: %s ***\r\n", filename);
+	printf("Reading TXT file: %s\r\n", filename);
  
 	FIL	file;
-	//以只读方式打开文件
+
 	FRESULT res = f_open(&file, filename, FA_READ);  
-	//打开成功
 	if(res == FR_OK)
 	{
 		//读取缓存
@@ -180,10 +178,9 @@ void FatFs_ReadTXTFile(TCHAR *filename)
 	//如果没有该文件
 	else if(res == FR_NO_FILE)
 		printf("File does not exist\r\n");
-	//打开失败
 	else
-		printf("f_open() error，error code: %d\r\n", res);
-	//关闭文件
+		printf("f_open() error, error code: %d\r\n", res);
+
 	f_close(&file);
 }
  

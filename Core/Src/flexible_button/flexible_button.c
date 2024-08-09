@@ -114,7 +114,7 @@ int32_t flex_button_register(flex_button_t *button)
      */
     button->next = btn_head;
     button->status = FLEX_BTN_STAGE_DEFAULT;
-    button->event = FLEX_BTN_PRESS_NONE;
+    button->event = BTN_NONE;
     button->scan_cnt = 0;
     button->click_cnt = 0;
     if (button->max_multiple_clicks_interval == 0)
@@ -189,14 +189,14 @@ static uint8_t flex_button_process(void)
                 target->scan_cnt = 0;
                 target->click_cnt = 0;
 
-                EVENT_SET_AND_EXEC_CB(target, FLEX_BTN_PRESS_DOWN);
+                EVENT_SET_AND_EXEC_CB(target, BTN_DOWN);
 
                 /* swtich to button down stage */
                 target->status = FLEX_BTN_STAGE_DOWN;
             }
             else
             {
-                target->event = FLEX_BTN_PRESS_NONE;
+                target->event = BTN_NONE;
             }
             break;
 
@@ -208,7 +208,7 @@ static uint8_t flex_button_process(void)
                     if (target->scan_cnt > target->max_multiple_clicks_interval)
                     {
                         EVENT_SET_AND_EXEC_CB(target,
-                                              target->click_cnt < FLEX_BTN_PRESS_REPEAT_CLICK ? target->click_cnt : FLEX_BTN_PRESS_REPEAT_CLICK);
+                                              target->click_cnt < BTN_REPEAT_CLICK ? target->click_cnt : BTN_REPEAT_CLICK);
 
                         /* swtich to button down stage */
                         target->status = FLEX_BTN_STAGE_DOWN;
@@ -218,23 +218,23 @@ static uint8_t flex_button_process(void)
                 }
                 else if (target->scan_cnt >= target->long_hold_start_tick)
                 {
-                    if (target->event != FLEX_BTN_PRESS_LONG_HOLD)
+                    if (target->event != BTN_LONG_HOLD_START)
                     {
-                        EVENT_SET_AND_EXEC_CB(target, FLEX_BTN_PRESS_LONG_HOLD);
+                        EVENT_SET_AND_EXEC_CB(target, BTN_LONG_HOLD_START);
                     }
                 }
                 else if (target->scan_cnt >= target->long_press_start_tick)
                 {
-                    if (target->event != FLEX_BTN_PRESS_LONG_START)
+                    if (target->event != BTN_LONG_START)
                     {
-                        EVENT_SET_AND_EXEC_CB(target, FLEX_BTN_PRESS_LONG_START);
+                        EVENT_SET_AND_EXEC_CB(target, BTN_LONG_START);
                     }
                 }
                 else if (target->scan_cnt >= target->short_press_start_tick)
                 {
-                    if (target->event != FLEX_BTN_PRESS_SHORT_START)
+                    if (target->event != BTN_SHORT_START)
                     {
-                        EVENT_SET_AND_EXEC_CB(target, FLEX_BTN_PRESS_SHORT_START);
+                        EVENT_SET_AND_EXEC_CB(target, BTN_SHORT_START);
                     }
                 }
             }
@@ -242,17 +242,17 @@ static uint8_t flex_button_process(void)
             {
                 if (target->scan_cnt >= target->long_hold_start_tick)
                 {
-                    EVENT_SET_AND_EXEC_CB(target, FLEX_BTN_PRESS_LONG_HOLD_UP);
+                    EVENT_SET_AND_EXEC_CB(target, BTN_LONG_HOLD_UP);
                     target->status = FLEX_BTN_STAGE_DEFAULT;
                 }
                 else if (target->scan_cnt >= target->long_press_start_tick)
                 {
-                    EVENT_SET_AND_EXEC_CB(target, FLEX_BTN_PRESS_LONG_UP);
+                    EVENT_SET_AND_EXEC_CB(target, BTN_LONG_UP);
                     target->status = FLEX_BTN_STAGE_DEFAULT;
                 }
                 else if (target->scan_cnt >= target->short_press_start_tick)
                 {
-                    EVENT_SET_AND_EXEC_CB(target, FLEX_BTN_PRESS_SHORT_UP);
+                    EVENT_SET_AND_EXEC_CB(target, BTN_SHORT_UP);
                     target->status = FLEX_BTN_STAGE_DEFAULT;
                 }
                 else
@@ -276,7 +276,7 @@ static uint8_t flex_button_process(void)
                 if (target->scan_cnt > target->max_multiple_clicks_interval)
                 {
                     EVENT_SET_AND_EXEC_CB(target,
-                                          target->click_cnt < FLEX_BTN_PRESS_REPEAT_CLICK ? target->click_cnt : FLEX_BTN_PRESS_REPEAT_CLICK);
+                                          target->click_cnt < BTN_REPEAT_CLICK ? target->click_cnt : BTN_REPEAT_CLICK);
 
                     /* swtich to default stage */
                     target->status = FLEX_BTN_STAGE_DEFAULT;
