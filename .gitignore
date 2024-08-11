@@ -11,5 +11,6 @@
 *.lnp
 *.dep
 *.hex
+*.bin
 *.axf
 .vscode/
