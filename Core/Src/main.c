@@ -100,13 +100,12 @@ int main(void)
   MX_FATFS_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
-  HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
   printf("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
 
-  register_key();
+  /* 使能交互串口的接收 */
+  HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 
-  key_process_start();
+  key_init();
 
   /* USER CODE END 2 */
 
@@ -195,7 +194,7 @@ void def_printf(const char *format, ...)
   // 清理 args
   va_end(args);
 
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�?
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�?
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -207,8 +206,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
    */
 
   // def_printf("%c", RxData);
-  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�????
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�????测UART发�?�结�????
+  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�????
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�????测UART发�?�结�????
 	
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 }

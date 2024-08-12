@@ -11,11 +11,17 @@ typedef enum
     USER_BUTTON_MAX
 } user_button_t;
 
+typedef struct __key_evt_val_queue_st
+{
+    uint8_t key_id;
+    uint8_t key_evt;
+}key_evt_val_queue_t;
+
 extern char *enum_btn_event_string[];
 
 void print_key_test_str(void);
 
-void register_key(void);
+void key_init(void);
 
 void key_process_start(void);
 
