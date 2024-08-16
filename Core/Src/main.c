@@ -20,6 +20,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "fatfs.h"
+#include "spi.h"
 #include "usart.h"
 #include "usb_host.h"
 #include "gpio.h"
@@ -29,6 +30,7 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include "COG.h"
 #include "key.h"
 
 uint8_t RxData = 0;
@@ -99,10 +101,16 @@ int main(void)
   MX_GPIO_Init();
   MX_FATFS_Init();
   MX_USART1_UART_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   printf("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
 
-  /* 使能交互串口的接收 */
+  Init_ST7567();
+	HAL_Delay(1000);
+	
+  lcd_hello();
+
+  /* 使能交互串口的接�??? */
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 
   key_init();
@@ -194,7 +202,7 @@ void def_printf(const char *format, ...)
   // 清理 args
   va_end(args);
 
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�?
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�????
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -206,8 +214,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
    */
 
   // def_printf("%c", RxData);
-  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�????
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�????测UART发�?�结�????
+  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�???????
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�???????测UART发�?�结�???????
 	
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 }
