@@ -68,6 +68,48 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
+int _g_encoder_cnt = 0;
+
+/**
+  * @brief  EXTI line detection callbacks.
+  * @param  GPIO_Pin Specifies the pins connected EXTI line
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(GPIO_Pin);
+
+  if(Encoder_A_Pin == GPIO_Pin)
+  {
+    GPIO_PinState pinState = HAL_GPIO_ReadPin(Encoder_B_GPIO_Port, Encoder_B_Pin);
+    if(GPIO_PIN_RESET == pinState)  //A下降沿中断时，B低电平，发生反转
+    {
+      _g_encoder_cnt--;
+      printf("_g_encoder_cnt = %d\r\n", _g_encoder_cnt);
+    }
+    else  //A下降沿中断时，B高电平，发生正转
+    {
+      _g_encoder_cnt++;
+      printf("_g_encoder_cnt = %d\r\n", _g_encoder_cnt);
+    }
+  }
+
+  if(Encoder_Key_Pin == GPIO_Pin)
+  {
+    GPIO_PinState pinState = HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin);
+    if(GPIO_PIN_RESET == pinState)  //key 按下
+    {
+      printf("Encoder key down\r\n");
+    }
+    else
+    {
+      printf("Encoder key up\r\n");
+    }
+  }  
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -102,6 +144,7 @@ int main(void)
   MX_FATFS_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   printf("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
 
@@ -110,7 +153,7 @@ int main(void)
 	
   lcd_hello();
 
-  /* 使能交互串口的接�??? */
+  /* 使能调试串口的接�?*/
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 
   key_init();
@@ -202,7 +245,7 @@ void def_printf(const char *format, ...)
   // 清理 args
   va_end(args);
 
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�????
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�?????
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -214,8 +257,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
    */
 
   // def_printf("%c", RxData);
-  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�???????
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�???????测UART发�?�结�???????
+  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�????????
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�????????测UART发�?�结�????????
 	
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 }

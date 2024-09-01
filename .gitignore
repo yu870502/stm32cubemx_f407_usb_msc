@@ -14,3 +14,4 @@
 *.bin
 *.axf
 .vscode/
+*.code-workspace

@@ -32,7 +32,7 @@ void Write_ST7567_COM(uchar COMDADA_4SPI)
 {
 //	uchar bit8;
 
-	HAL_GPIO_WritePin(GPIOA, SPI_DC_Pin|SPI_CS_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, SPI_DC_RS_Pin|SPI_CS_Pin, GPIO_PIN_RESET);
 	// CD=0;
 	// CS0=0;
 
@@ -64,7 +64,7 @@ void Write_ST7567_DATA(uchar DATA_4SPI)
 {   
 	// uchar bit8;
 
-	HAL_GPIO_WritePin(GPIOA, SPI_DC_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, SPI_DC_RS_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(GPIOA, SPI_CS_Pin, GPIO_PIN_RESET);
 	// CD=1;
 	// CS0=0;				

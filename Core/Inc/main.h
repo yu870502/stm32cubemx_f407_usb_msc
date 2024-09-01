@@ -59,12 +59,28 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define KEY1_Pin GPIO_PIN_6
 #define KEY1_GPIO_Port GPIOE
-#define SPI_DC_Pin GPIO_PIN_2
-#define SPI_DC_GPIO_Port GPIOA
+#define SPI_DC_RS_Pin GPIO_PIN_2
+#define SPI_DC_RS_GPIO_Port GPIOA
+#define SPI_BLK_Pin GPIO_PIN_3
+#define SPI_BLK_GPIO_Port GPIOA
 #define SPI_RST_Pin GPIO_PIN_4
 #define SPI_RST_GPIO_Port GPIOA
 #define SPI_CS_Pin GPIO_PIN_6
 #define SPI_CS_GPIO_Port GPIOA
+#define Encoder_A_Pin GPIO_PIN_10
+#define Encoder_A_GPIO_Port GPIOE
+#define Encoder_A_EXTI_IRQn EXTI15_10_IRQn
+#define Encoder_B_Pin GPIO_PIN_12
+#define Encoder_B_GPIO_Port GPIOE
+#define Encoder_Key_Pin GPIO_PIN_14
+#define Encoder_Key_GPIO_Port GPIOE
+#define Encoder_Key_EXTI_IRQn EXTI15_10_IRQn
+#define RS485_E_Pin GPIO_PIN_4
+#define RS485_E_GPIO_Port GPIOD
+#define RS485_D_Pin GPIO_PIN_5
+#define RS485_D_GPIO_Port GPIOD
+#define RS485_R_Pin GPIO_PIN_6
+#define RS485_R_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 
