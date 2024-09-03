@@ -15,3 +15,5 @@
 *.axf
 .vscode/
 *.code-workspace
+.mxproject
+*.uvprojx
