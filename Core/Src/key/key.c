@@ -39,7 +39,7 @@ void key1_scan_task(void const * argument)
   for(;;)
   {
     flex_button_scan();
-    osDelay(key_scan_interval);  //注意，这里间隔时间要与FLEX_BTN_SCAN_FREQ_HZ紧密联系
+    osDelay(key_scan_interval);  //注意，这里间隔时间要与FLEX_BTN_SCAN_FREQ_HZ紧密联系，详见 FLEX_BTN_SCAN_FREQ_HZ 解释
   }
 }
 
