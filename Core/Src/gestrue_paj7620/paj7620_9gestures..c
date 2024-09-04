@@ -29,12 +29,14 @@
 */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "cmsis_os.h"
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 
+#include "paj7620_9gestures.h"
 #include "paj7620.h"
 
 /*
@@ -45,176 +47,139 @@
 #define GES_ENTRY_TIME			800				// When you want to recognize the Forward/Backward gestures, your gestures' reaction time must less than GES_ENTRY_TIME(0.8s). 
 #define GES_QUIT_TIME			1000
 
-#define ALL_OFF 0
-#define ALL_ON 1
-#define LED1_ON 2
-#define LED1_OFF 3
-#define LED2_ON 4
-#define LED2_OFF 5
-#define LED1_TWINKLE 6
-#define LED2_TWINKLE 7
-#define LED_FLOW 8
+static gesture_t *__g_gesture_obj = NULL;
 
-// 模式
-int mode = 0;
-extern int8_t gesture_polling(void);
-
-void gesture_scan_task(void const * argument)
+void gestureProcessTask(void const * argument)
 {
+  uint32_t notifyVal = 0;
+  uint8_t data = 0;
+  int8_t ret = -1;
+
   for(;;)
   {
-    gesture_polling();
-    osDelay(500);
+    printf("Watting gesture event\r\n");
+    notifyVal = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    printf("Receive gesture event = %d\r\n", notifyVal);
+
+    if(0 != (ret = paj7620ReadReg(PAJ7620_ADDR_GES_PS_DET_FLAG_0, 1, &data))){
+      printf("paj7620ReadReg %#X failed, code=%d\r\n", PAJ7620_ADDR_GES_PS_DET_FLAG_0, ret);
+      return;
+    }
+    printf("Reg %#X val = %d\r\n", PAJ7620_ADDR_GES_PS_DET_FLAG_0, data);
+
+    switch(data){
+      case GES_RIGHT_FLAG:
+        printf("Right event\r\n"); break;
+      case GES_LEFT_FLAG:
+        printf("Left event\r\n"); break;
+      case GES_UP_FLAG:
+        printf("Up event\r\n"); break;
+      case GES_DOWN_FLAG:
+        printf("Down event\r\n"); break;
+      case GES_FORWARD_FLAG:
+        printf("Forwared event\r\n"); break;
+      case GES_BACKWARD_FLAG:
+        printf("Backward event\r\n"); break;
+      case GES_CLOCKWISE_FLAG:
+        printf("Clockwise event\r\n"); break;
+      case GES_COUNT_CLOCKWISE_FLAG:
+        printf("Count clockwise event\r\n"); break;
+      default:
+        printf("Unknow gesture!!!\r\n");  break;
+    }
+
+    if(0 != (ret = paj7620ReadReg(PAJ7620_ADDR_GES_PS_DET_FLAG_1, 1, &data))){
+      printf("paj7620ReadReg %#X failed, code=%d\r\n", PAJ7620_ADDR_GES_PS_DET_FLAG_1, ret);
+      return;
+    }
+    printf("Reg %#X val = %d\r\n", PAJ7620_ADDR_GES_PS_DET_FLAG_1, data);
+    if(GES_WAVE_FLAG == data)
+      printf("Wave event\r\n");
   }
 }
 
 int8_t gesture_init(void)
 {
-  int8_t error = 0;
-
-  error = paj7620Init();			// initialize Paj7620 registers
-  if (error)
-  {
-    printf("INIT ERROR,CODE = %d\r\n", error);
+  int8_t ret = -1;
+  
+  if(NULL == (__g_gesture_obj = calloc(1, sizeof(gesture_t)))){
+    printf("create gesture obj failed\r\n");
     return -1;
   }
-  else
-  {
-    printf("INIT OK\r\n");
+
+  // initialize Paj7620 registers
+  if(0 != (ret = paj7620Init())){
+    printf("paj7620Init failed, ret code = %d\r\n", ret);
+    ret = -1;
+    goto free_gesture_obj;
+  }
+  else{
+    printf("paj7620Init OK\r\n");
+    ret = 0;
   }
 
-  osThreadDef(gesture_scan, gesture_scan_task, osPriorityAboveNormal, 0, 1024);
-  osThreadId gesture_scan_task = osThreadCreate(osThread(gesture_scan), NULL); 
+  osThreadDef(gesture_scan, gestureProcessTask, osPriorityAboveNormal, 0, 1024);
+  __g_gesture_obj->gestureProcessTask = osThreadCreate(osThread(gesture_scan), NULL);
+  if(!__g_gesture_obj->gestureProcessTask){
+    ret = -1;
+    goto free_gesture_obj;
+  }
 
-  return error;
+  goto exit;
+
+free_gesture_obj:
+  free(__g_gesture_obj);
+  __g_gesture_obj = NULL;
+
+exit:
+  return ret;
 }
 
-int8_t gesture_polling(void)
+gesture_t *getGestureObj(void)
 {
-  uint8_t data = 0, data1 = 0;
-  int8_t error = 0;
+  return __g_gesture_obj;
+}
 
-  error = paj7620ReadReg(0x43, 1, &data);				// Read Bank_0_Reg_0x43/0x44 for gesture result.
-  if(error)
-  {
-    printf("paj7620ReadReg %#X failed, code=%d\r\n", 0x43, error);
-    return -1;
+int8_t gestureDeinit(void)
+{
+	return -1;
+}
+
+
+int8_t get_objBright(uint8_t *data)
+{
+  int8_t ret = -1;
+
+  if((ret = paj7620ReadReg(0xb0, 1, data)) != 0){
+    printf("paj7620ReadReg %#X failed, code=%d\r\n", 0xb0, ret);
+    ret = -1;
+  }
+  else{
+    // printf("Object bright = %d\r\n", *data);
+    ret = 0;
   }
 
-    // printf("paj7620ReadReg %#X ok, data=%d\r\n", 0x43, data);
-  {
-    switch (data) 									// When different gestures be detected, the variable 'data' will be set to different values by paj7620ReadReg(0x43, 1, &data).
-    {
-      case GES_RIGHT_FLAG:
-        delay(GES_ENTRY_TIME);
-        paj7620ReadReg(0x43, 1, &data);
-        if (data == GES_FORWARD_FLAG)
-        {
-          printf("Forward\r\n");
-          mode = ALL_OFF;
-          delay(GES_QUIT_TIME);
-        }
-        else if (data == GES_BACKWARD_FLAG)
-        {
-          printf("Backward\r\n");
-          mode = ALL_ON;
-          delay(GES_QUIT_TIME);
-        }
-        else
-        {
-          printf("Right\r\n");
-        }
-        break;
-      case GES_LEFT_FLAG:
-        delay(GES_ENTRY_TIME);
-        paj7620ReadReg(0x43, 1, &data);
-        if (data == GES_FORWARD_FLAG)
-        {
-          printf("Forward\r\n");
-          mode = ALL_OFF;
-          delay(GES_QUIT_TIME);
-        }
-        else if (data == GES_BACKWARD_FLAG)
-        {
-          printf("Backward\r\n");
-          mode = ALL_ON;
-          delay(GES_QUIT_TIME);
-        }
-        else
-        {
-          printf("Left\r\n");
-        }
-        break;
-      case GES_UP_FLAG:
-        delay(GES_ENTRY_TIME);
-        paj7620ReadReg(0x43, 1, &data);
-        if (data == GES_FORWARD_FLAG)
-        {
-          printf("Forward\r\n");
-          mode = ALL_OFF;
-          delay(GES_QUIT_TIME);
-        }
-        else if (data == GES_BACKWARD_FLAG)
-        {
-          printf("Backward\r\n");
-          mode = ALL_ON;
-          delay(GES_QUIT_TIME);
-        }
-        else
-        {
-          printf("Up\r\n");
-          mode = ALL_ON;
-        }
-        break;
-      case GES_DOWN_FLAG:
-        delay(GES_ENTRY_TIME);
-        paj7620ReadReg(0x43, 1, &data);
-        if (data == GES_FORWARD_FLAG)
-        {
-          printf("Forward\r\n");
-          mode = ALL_OFF;
-          delay(GES_QUIT_TIME);
-        }
-        else if (data == GES_BACKWARD_FLAG)
-        {
-          printf("Backward\r\n");
-          mode = ALL_ON;
-          delay(GES_QUIT_TIME);
-        }
-        else
-        {
-          printf("Down\r\n");
-          mode = ALL_OFF;
-        }
-        break;
-      case GES_FORWARD_FLAG:
-        printf("Forward\r\n");
-        mode = ALL_OFF;
-        delay(GES_QUIT_TIME);
-        break;
-      case GES_BACKWARD_FLAG:
-        printf("Backward\r\n");
-        mode = ALL_ON;
-        delay(GES_QUIT_TIME);
-        break;
-      case GES_CLOCKWISE_FLAG:
-        printf("Clockwise\r\n");
-        mode = LED1_TWINKLE;
-        break;
-      case GES_COUNT_CLOCKWISE_FLAG:
-        printf("anti-clockwise\r\n");
-        mode = LED2_TWINKLE;
-        break;
-      default:
-        paj7620ReadReg(0x44, 1, &data1);
-        if (data1 == GES_WAVE_FLAG)
-        {
-          printf("wave\r\n");
-          mode = LED_FLOW;
-        }
-        break;
+  return ret;
+}
+
+int8_t get_objSize(uint16_t *objSize)
+{
+  uint8_t data = 0;
+  int8_t ret = -1;
+
+  if((ret = paj7620ReadReg(0xb2, 1, &data)) != 0){
+    printf("paj7620ReadReg %#X failed, code=%d\r\n", 0xb2, ret);
+  }
+  else{
+    *objSize |= (uint16_t)(data & 0x0f) << 8;  //Only 4 bits are needed in the high register
+    if((ret = paj7620ReadReg(0xb1, 1, &data)) != 0){
+      printf("paj7620ReadReg %#X failed, code=%d\r\n", 0xb1, ret);
+    }
+    else{
+      *objSize |= (uint16_t)data;
+      // printf("Object size = %d\r\n", objSize);
+      ret = 0;
     }
   }
-	return 0;
+  return ret;
 }
-

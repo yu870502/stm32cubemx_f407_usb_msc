@@ -280,41 +280,6 @@ int8_t paj7620WriteReg(uint8_t addr, uint8_t cmd)
         ret = -1;
     }
     return ret;
-
-#if 0    
-  char ret = 1;
-  // 使用给定地址开始到I2C从设备的传输。随后，使用write（）函数将字节排队以进行传输，并通过调用endTransmission（）进行传输。
-  Wire.beginTransmission(PAJ7620_ID);
-  // 响应主设备的请求从 从设备写入数据，或排队等待从 主设备到从设备的传输（在调用beginTransmission（）和endTransmission（）之间）。
-  Wire.write(addr);						// send register address
-  Wire.write(cmd);						// send value to write
-  /*
-    结束到由beginTransmission（）开始的从设备的传输，并传输由write（）排队的字节。
-    如果为true，endTransmission（）在传输后发送停止消息，释放I2C总线。
-    如果为false，则endTransmission（）在传输后发送重新启动消息。总线不会被释放，这会阻止另一个主设备在消息之间传输。这允许一个主设备在控制中发送多个传输。
-  */
-  ret = Wire.endTransmission();
-  if (0 != ret)
-  {
-    if (1 == ret)
-    {
-      printf("[paj7620WriteReg error] data too long to fit in transmit buffer\n");
-    }
-    else if (2 == ret)
-    {
-      printf("[paj7620WriteReg error] received NACK on transmit of address\n");
-    }
-    else if (3 == ret)
-    {
-      printf("[paj7620WriteReg error] received NACK on transmit of data\n");
-    }
-    else if (4 == ret)
-    {
-      printf("[paj7620WriteReg error] other error\n");
-    }
-  }
-  return ret;
-#endif
 }
 
 /****************************************************************
@@ -337,58 +302,6 @@ int8_t paj7620ReadReg(uint8_t addr, uint8_t qty, uint8_t data[])
     }
 
     return ret;
-
-#if 0
-  Wire.beginTransmission(PAJ7620_ID);
-  Wire.write(addr);
-  ret = Wire.endTransmission();
-
-  if (0 != ret)
-  {
-    if (1 == ret)
-    {
-      printf("[paj7620ReadReg error] data too long to fit in transmit buffer\n");
-    }
-    else if (2 == ret)
-    {
-      printf("[paj7620ReadReg error] received NACK on transmit of address\n");
-    }
-    else if (3 == ret)
-    {
-      printf("[paj7620ReadReg error] received NACK on transmit of data\n");
-    }
-    else if (4 == ret)
-    {
-      printf("[paj7620ReadReg error] other error\n");
-    }
-    return ret; //return error code
-  }
-
-  /* 
-    主设备用于从设备请求字节。然后可以使用available（）和read（）函数检索字节。
-    如果为true，则requestFrom（）在请求后发送停止消息，释放I2C总线。
-    如果为false，requestFrom（）将在请求后发送重新启动消息。总线将不会被释放，这将阻止另一个主设备在消息之间进行请求。这允许一个主设备在控制中发送多个请求。  
-    返回：字节，从 从设备返回的字节数。
-  */
-  Wire.requestFrom((int)PAJ7620_ID, (int)qty);
-
-  // 返回可通过read（）检索的字节数。在调用requestFrom（）之后，应该在主设备上调用此函数，或者在onReceive（）处理程序中的从设备上调用此函数。
-  while (Wire.available())
-  {
-    // 读取在调用requestFrom（）后从 从设备传输到主设备的字节，或从 主设备传输到从设备的字节。read（）继承自Stream实用程序类。
-    *data = Wire.read();
-
-#ifdef debug    //debug
-    printf("addr:");
-    printf(addr++, HEX);
-    printf("  data:");
-    printf(*data, HEX);
-#endif
-
-    data++;
-  }
-  return 0;
-#endif
 }
 
 /****************************************************************
