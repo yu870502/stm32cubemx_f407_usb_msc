@@ -22,6 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -167,9 +168,10 @@ void DebugMon_Handler(void)
 void EXTI9_5_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI9_5_IRQn 0 */
+  printf("%s line=%d\r\n", __FUNCTION__, __LINE__);
 
   /* USER CODE END EXTI9_5_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(Gesture_Int_Pin);
+  HAL_GPIO_EXTI_IRQHandler(PAJ7620_Int_Pin);
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
 
   /* USER CODE END EXTI9_5_IRQn 1 */

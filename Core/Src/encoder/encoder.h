@@ -12,14 +12,11 @@
 #define Encoder_Key_GPIO_Port GPIOE
 #define Encoder_Key_EXTI_IRQn EXTI15_10_IRQn
 
+#define ENCODER_FALSE 0
+#define ENCODER_TRUE 1
+
 typedef int (* register_user_process_t)(void *);
 typedef void *(* user_process_t)(void *);
-
-int register_user_process(void *arg)
-{
-	int ret = 0;
-	return ret;
-}
 
 typedef struct __encoder_object_st
 {
@@ -29,5 +26,10 @@ typedef struct __encoder_object_st
     user_process_t user_process;
 
 }encoder_object_t;
+
+int8_t IsEncoderA_Exti(uint16_t GPIO_Pin);
+int8_t EncoderB_Process(void);
+int8_t IsEncoderKeyExti(uint16_t GPIO_Pin);
+int8_t EncoderKeyNotifyProcess(void);
 
 #endif

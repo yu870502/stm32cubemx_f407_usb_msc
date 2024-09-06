@@ -183,3 +183,20 @@ int8_t get_objSize(uint16_t *objSize)
   }
   return ret;
 }
+
+/**
+ * ret: -1,get gesture object error, 0,give gesture notify, 1, No interruption occurred
+ */
+int8_t gestureEXTINotify(void)
+{
+  gesture_t *gestureObj = getGestureObj();
+
+  if(!gestureObj){
+    printf("getGestureObj return NULL\r\n");
+    return -1;
+  }
+
+  BaseType_t pxHigherPriorityTaskWoken = pdTRUE;
+  vTaskNotifyGiveFromISR(gestureObj->gestureProcessTask, &pxHigherPriorityTaskWoken);
+  return 0;
+}

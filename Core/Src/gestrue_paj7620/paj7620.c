@@ -257,6 +257,19 @@ unsigned char initRegisterArray[][2] = {	// Initial Gesture
   {0x7D, 0x03},
   {0x7E, 0x01},
 };
+/**
+ * ret: 1, Interruption occurred. other, No interruption occurred.
+ */
+PAJ7620_BOOL IsPaj7620Exti(uint16_t GPIO_Pin)
+{
+  if(GPIO_Pin != PAJ7620_Int_Pin)
+    return PAJ7620_FALSE;
+  if(GPIO_PIN_RESET != HAL_GPIO_ReadPin(PAJ7620_Int_GPIO_Port, PAJ7620_Int_Pin))
+    return PAJ7620_FALSE;
+  printf("gesture interrupt\r\n");
+
+  return PAJ7620_TURE;
+}
 
 void delay(uint32_t time)
 {

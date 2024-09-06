@@ -23,6 +23,8 @@ gesture_t *getGestureObj(void);
 
 int8_t gestureDeinit(void);
 
+int8_t gestureEXTINotify(void);
+
 #endif
 
 

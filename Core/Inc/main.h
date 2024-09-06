@@ -81,9 +81,9 @@ void Error_Handler(void);
 #define RS485_D_GPIO_Port GPIOD
 #define RS485_R_Pin GPIO_PIN_6
 #define RS485_R_GPIO_Port GPIOD
-#define Gesture_Int_Pin GPIO_PIN_8
-#define Gesture_Int_GPIO_Port GPIOB
-#define Gesture_Int_EXTI_IRQn EXTI9_5_IRQn
+#define PAJ7620_Int_Pin GPIO_PIN_8
+#define PAJ7620_Int_GPIO_Port GPIOB
+#define PAJ7620_Int_EXTI_IRQn EXTI9_5_IRQn
 
 /* USER CODE BEGIN Private defines */
 

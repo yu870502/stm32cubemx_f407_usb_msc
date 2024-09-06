@@ -73,11 +73,11 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = KEY1_Pin;
+  /*Configure GPIO pins : PEPin PEPin */
+  GPIO_InitStruct.Pin = KEY1_Pin|Encoder_B_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(KEY1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PC13 PC0 PC1 PC2
                            PC3 PC4 PC5 PC6
@@ -126,14 +126,8 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pins : PEPin PEPin */
   GPIO_InitStruct.Pin = Encoder_A_Pin|Encoder_Key_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = Encoder_B_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Encoder_B_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD8 PD9 PD10 PD11
                            PD12 PD13 PD14 PD15
@@ -155,16 +149,16 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(RS485_E_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = Gesture_Int_Pin;
+  GPIO_InitStruct.Pin = PAJ7620_Int_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Gesture_Int_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(PAJ7620_Int_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 8, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }

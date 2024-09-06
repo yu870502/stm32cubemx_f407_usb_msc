@@ -99,24 +99,12 @@ typedef enum {
 #define GES_COUNT_CLOCKWISE_FLAG	PAJ7620_VAL(1,7)
 #define GES_WAVE_FLAG				PAJ7620_VAL(1,0)
 
-/*
-enum {
-	// REGISTER 0
-	GES_RIGHT_FLAG			 = BIT(0),
-	GES_LEFT_FLAG			 = BIT(1),
-	GES_UP_FLAG				 = BIT(2),
-	GES_DOWN_FLAG			 = BIT(3),
-	GES_FORWARD_FLAG		 = BIT(4),
-	GES_BACKWARD_FLAG		 = BIT(5),
-	GES_CLOCKWISE_FLAG		 = BIT(6),
-	GES_COUNT_CLOCKWISE_FLAG = BIT(7),
-	//REGISTER 1
-	GES_WAVE_FLAG		= BIT(0),	
-};
-*/
-
-
 #define INIT_REG_ARRAY_SIZE (sizeof(initRegisterArray)/sizeof(initRegisterArray[0]))
+
+#define PAJ7620_BOOL unsigned char
+
+#define PAJ7620_TURE 1
+#define PAJ7620_FALSE 0
 
 void delay(uint32_t time);
 
@@ -124,6 +112,6 @@ int8_t paj7620Init(void);
 int8_t paj7620WriteReg(uint8_t addr, uint8_t cmd);
 int8_t paj7620ReadReg(uint8_t addr, uint8_t qty, uint8_t data[]);
 int8_t paj7620SelectBank(bank_e bank);
-
+PAJ7620_BOOL IsPaj7620Exti(uint16_t GPIO_Pin);
 
 #endif
