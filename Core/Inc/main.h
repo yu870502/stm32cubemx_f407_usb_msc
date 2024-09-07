@@ -86,7 +86,7 @@ void Error_Handler(void);
 #define PAJ7620_Int_EXTI_IRQn EXTI9_5_IRQn
 
 /* USER CODE BEGIN Private defines */
-
+#define FM_VERSION "V1.0"
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

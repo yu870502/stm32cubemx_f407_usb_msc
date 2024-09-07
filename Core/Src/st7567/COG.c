@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "main.h"
 #include "COG.h"
@@ -44,6 +45,11 @@
 extern SPI_HandleTypeDef hspi1;
 
 #define ST7567A_TIMEOUT  				100
+
+void Delay_ms(unsigned long value)
+{
+	HAL_Delay(value);
+}
 
 //write commond
 void Write_ST7567_COM(uchar COMDADA_4SPI)
@@ -91,27 +97,49 @@ void clear_screen(uchar xx)
 	}
 }
 
-void Display_pic1()
+int8 clearDDRAMLine(uchar line)
 {
-	uint i,j,adressd=0;
+	if(line >= (DDRAM_PAGES_MAX >> 1)){
+		printf("[%s] param[line] error:%d\r\n", __FUNCTION__, line);
+		return -1;
+	}
 
-	for(i=0;i<8;i++){
-		// CS0=0;
-		HAL_GPIO_WritePin(GPIOA, SPI_CS_Pin, GPIO_PIN_RESET);
-
-		Write_ST7567_COM(0xb0+i);
-		Write_ST7567_COM(0x10);
-		Write_ST7567_COM(0x00);
-		for(j=0;j<96;j++){
-			Write_ST7567_DATA(graphic1[adressd]);
-			adressd++;
+	uchar lineToPage = line << 1;	//line * 2
+	uchar i,j;
+	for(i=0; i < DDRAM_LINE_PAGES_MAX; i++){
+		HAL_GPIO_WritePin(GPIOA, SPI_CS_Pin, GPIO_PIN_RESET);	// CS0=0;
+		
+		Write_ST7567_COM(Page0 + lineToPage + i);	 //SET PAGE 0---8
+		Write_ST7567_COM(0x10);	//SET COLUMN MSB
+		Write_ST7567_COM(0x00);	//SET CLUMN LSB
+		for(j=0;j<128;j++){
+			Write_ST7567_DATA(0);
 		}
 	}
-} 
-		
-void Delay_ms(unsigned long value)
+	return 0;
+}
+
+int8 refreshDDRAMLine(uchar line, char *cont, uchar fs)
 {
-	HAL_Delay(value);
+	if(line >= (DDRAM_PAGES_MAX >> 1)){
+		printf("[%s] param[line] error:%d\r\n", __FUNCTION__, line);
+		return -1;
+	}
+	if(!cont){
+		printf("[%s] param[cont] error:%p\r\n", __FUNCTION__, cont);
+		return -1;
+	}
+	uchar len = strlen((char *)cont);
+	if(len > DDRAM_COLUMN_CHARS_MAX){
+		printf("[%s] param[cont] len error:%d\r\n", __FUNCTION__, len);
+		return -1;
+	}
+
+	uchar i = 0;
+	for(i = 0; i < len; i++){
+		WRITE_CHAR(line, i, *(cont + i), fs);
+	}
+	return 0;
 }
 
 void HDReset()
@@ -126,7 +154,7 @@ void HDReset()
 }
 
 /**
-* 函数名称:WRITE_STRING(uchar plat,uchar column,uchar xs,uchar chr, uchar c)
+* 函数名称:WRITE_CHAR(uchar plat,uchar column,uchar xs,uchar chr, uchar c)
 * 函数功能:显示字符
 * 输入参数:plat      行地址
 * 输入参数:column    列地址
@@ -134,7 +162,7 @@ void HDReset()
 * 输入参数:fs   显示方式（0，反显，否则正常显示）
 * 返 回 值:无
 */
-void WRITE_STRING(uchar plat, uchar column, uchar chr, uchar fs)
+void WRITE_CHAR(uchar plat, uchar column, uchar chr, uchar fs)
 {
 	uchar page,page1,col,col_h,col_l;
 	uchar i,a,j=0;
@@ -149,7 +177,7 @@ void WRITE_STRING(uchar plat, uchar column, uchar chr, uchar fs)
 		Write_ST7567_COM(col_h);
 		Write_ST7567_COM(col_l);
 		Write_ST7567_COM(page+a);
-  		for(i = 0;  i <8; i ++ ){
+  		for(i = 0;  i < 8; i ++ ){
 			if(fs == 0){Write_ST7567_DATA(s0[chr][j++]);}
 			if(fs == 1){Write_ST7567_DATA(~(s0[chr][j++]));}
 		}
@@ -196,7 +224,6 @@ void Disp_Nub8X16(uchar Row,uchar Col,uchar Number,uchar fs)
 void Lcd12864_ClearScreen(void)
 {
 	uchar i, j;
-
 	for(i=0; i<8; i++){
 		Write_ST7567_COM(0xB0+i); 
 		Write_ST7567_COM(0x10); 
@@ -236,32 +263,33 @@ void Init_ST7567()
 
 void lcd_hello(void)
 {
-	WRITE_STRING(0,0,'H',1);
-	WRITE_STRING(0,1,'e',1);
-	WRITE_STRING(0,2,'l',1);
-	WRITE_STRING(0,3,'l',1);
-	WRITE_STRING(0,4,'o',1);
+	refreshDDRAMLine(0, "hello", 1);
+	// WRITE_CHAR(0,0,'H',1);
+	// WRITE_CHAR(0,1,'e',1);
+	// WRITE_CHAR(0,2,'l',1);
+	// WRITE_CHAR(0,3,'l',1);
+	// WRITE_CHAR(0,4,'o',1);
 	
-	WRITE_STRING(2,0,'n',1);
-	WRITE_STRING(2,1,'i',1);
-	WRITE_STRING(2,2,'h',1);
-	WRITE_STRING(2,3,'a',1);
-	WRITE_STRING(2,4,'o',1);
+	// WRITE_CHAR(2,0,'n',1);
+	// WRITE_CHAR(2,1,'i',1);
+	// WRITE_CHAR(2,2,'h',1);
+	// WRITE_CHAR(2,3,'a',1);
+	// WRITE_CHAR(2,4,'o',1);
 
-	WRITE_STRING(3,0,'0',1);
-	WRITE_STRING(3,1,'1',1);
-	WRITE_STRING(3,2,'2',1);
-	WRITE_STRING(3,3,'3',1);
-	WRITE_STRING(3,4,'4',1);
-	WRITE_STRING(3,5,'5',1);
-	WRITE_STRING(3,6,'6',1);
-	WRITE_STRING(3,7,'7',1);
-	WRITE_STRING(3,8,'8',1);
-	WRITE_STRING(3,9,'9',1);
-	WRITE_STRING(3,10,'a',1);
-	WRITE_STRING(3,11,'b',1);
-	WRITE_STRING(3,12,'c',1);
-	WRITE_STRING(3,13,'d',1);
-	WRITE_STRING(3,14,'e',1);
-	WRITE_STRING(3,15,'f',1);
+	// WRITE_CHAR(3,0,'0',1);
+	// WRITE_CHAR(3,1,'1',1);
+	// WRITE_CHAR(3,2,'2',1);
+	// WRITE_CHAR(3,3,'3',1);
+	// WRITE_CHAR(3,4,'4',1);
+	// WRITE_CHAR(3,5,'5',1);
+	// WRITE_CHAR(3,6,'6',1);
+	// WRITE_CHAR(3,7,'7',1);
+	// WRITE_CHAR(3,8,'8',1);
+	// WRITE_CHAR(3,9,'9',1);
+	// WRITE_CHAR(3,10,'a',1);
+	// WRITE_CHAR(3,11,'b',1);
+	// WRITE_CHAR(3,12,'c',1);
+	// WRITE_CHAR(3,13,'d',1);
+	// WRITE_CHAR(3,14,'e',1);
+	// WRITE_CHAR(3,15,'f',1);
 }
