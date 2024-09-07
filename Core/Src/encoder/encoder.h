@@ -15,8 +15,8 @@
 #define ENCODER_FALSE 0
 #define ENCODER_TRUE 1
 
-typedef int (* register_user_process_t)(void *);
-typedef void *(* user_process_t)(void *);
+typedef int8_t (*register_user_process_t)(void *);
+typedef int8_t (*user_process_t)(void *);
 
 typedef struct __encoder_object_st
 {
@@ -30,6 +30,6 @@ typedef struct __encoder_object_st
 int8_t IsEncoderA_Exti(uint16_t GPIO_Pin);
 int8_t EncoderB_Process(void);
 int8_t IsEncoderKeyExti(uint16_t GPIO_Pin);
-int8_t EncoderKeyNotifyProcess(void);
+int8_t EncoderKeyNotifyProcess(void *args);
 
 #endif

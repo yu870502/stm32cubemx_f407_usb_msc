@@ -2,14 +2,36 @@
 #include "encoder.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
+static encoder_object_t *__g_encoderObj = NULL;
 /**
  * 
  */
 int create_encoder(void)
 {
 	int ret = 0;
+
+	if(!__g_encoderObj){
+		if(NULL == (__g_encoderObj = calloc(1, sizeof(encoder_object_t)))){
+			printf("Create encoder object failed\r\n");
+			return -1;
+		}
+	}
+
+	__g_encoderObj->user_process = EncoderKeyNotifyProcess;
+
+
 	return ret;
+}
+
+encoder_object_t *getEncoderObj(void)
+{
+	if(!__g_encoderObj){
+		printf("Encoder object not created\r\n");
+		return NULL;
+	}
+	return __g_encoderObj;
 }
 
 int8_t IsEncoderA_Exti(uint16_t GPIO_Pin)
@@ -51,7 +73,7 @@ int8_t IsEncoderKeyExti(uint16_t GPIO_Pin)
 
 	return ENCODER_TRUE;
 }
-int8_t EncoderKeyNotifyProcess(void)
+int8_t EncoderKeyNotifyProcess(void *args)
 {
 	printf("Encoder key notify\r\n");
 
