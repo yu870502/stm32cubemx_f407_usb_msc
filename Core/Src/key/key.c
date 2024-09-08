@@ -108,7 +108,6 @@ void key1_evt_process_task(void const * argument)
     }
 
     osDelay(100);
-
   }
 }
 

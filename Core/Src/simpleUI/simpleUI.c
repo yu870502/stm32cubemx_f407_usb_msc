@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cmsis_os.h"
 #include "simpleUI.h"
 #include "COG.h"
 
-menu_item_obj_t *rootMenuItemList = NULL;
+menu_obj_t *currentMenu = NULL;
 
-menu_obj_t *rootMenuObj = NULL;
-
+//----------------------------------main menu---------------------------------------
 char *rootMenuItemTittleGrp[] = {
     MAIN_MENU_ITEM_MCU_TEMP,
     MAIN_MENU_ITEM_SET_SCREEN_EV,
@@ -19,6 +19,82 @@ char *rootMenuItemTittleGrp[] = {
     MAIN_MENU_ITEM_FW_VERSION,
     NULL,
 };
+menu_item_obj_t *rootMenuItemList = NULL;
+menu_obj_t *rootMenuObj = NULL;
+uint8_t rootMenuEventProcess(uint8_t *event)
+{
+    uint8_t itemTotal = 0;
+    switch(*event){
+        case MENU_EVENT_CLOCKWISE:      //菜单下滚动封装成api
+        itemTotal = rootMenuObj->selectedItemIndex + 1;
+        if(itemTotal < rootMenuObj->itemTotal){
+            rootMenuObj->selectedItemIndex++;
+            if(rootMenuObj->selectedItemIndex - rootMenuObj->currentPageIndex >= PAGE_MAX_LINE){
+                if(rootMenuObj->currentPageIndex < rootMenuObj->itemTotal - 1){
+                    rootMenuObj->currentPageIndex++;
+                }
+            }
+        }
+        break;
+
+        case MENU_EVENT_ANTICCLOCKWISE: //菜单上滚动封装成api
+        if(rootMenuObj->selectedItemIndex > 0){
+            rootMenuObj->selectedItemIndex--;
+            if(rootMenuObj->selectedItemIndex < rootMenuObj->currentPageIndex){
+                rootMenuObj->currentPageIndex--;
+            }
+        }
+        break;
+
+        case MENU_EVENT_CLICK:
+
+        break;
+
+        case MENU_EVENT_DOUBLE_CLICK:
+
+        break;
+
+        default:
+            printf("Unknow menu event:%d\r\n", *event);
+        break;
+    }
+    printf("Menu name:%s\r\n", rootMenuObj->menuName);
+    printf("selectedItem:%d\r\n", rootMenuObj->selectedItemIndex);
+    printf("currentPage:%d\r\n\r\n", rootMenuObj->currentPageIndex);
+
+    refreshUIMenu(rootMenuObj);
+    return 0;
+}
+
+//----------------------------------sub1 menu---------------------------------------
+
+//----------------------------------sub2 menu---------------------------------------
+
+EventGroupHandle_t xMenuEventGrp;
+void menuEventProcessTask(void *arg)
+{
+    EventBits_t menuEventGrp;
+    uint8_t event = MENU_EVENT_NONE;
+    for(;;){
+        printf("Watting menuEventGrp:%d\r\n", menuEventGrp);
+        menuEventGrp = xEventGroupWaitBits(xMenuEventGrp, MENU_EVENT_CLOCKWISE | MENU_EVENT_ANTICCLOCKWISE | MENU_EVENT_CLICK | MENU_EVENT_DOUBLE_CLICK,
+                                        pdTRUE, pdFALSE, portMAX_DELAY);
+        (menuEventGrp & MENU_EVENT_CLOCKWISE) ? event |= MENU_EVENT_CLOCKWISE : (event = event);
+        (menuEventGrp & MENU_EVENT_ANTICCLOCKWISE) ? event |= MENU_EVENT_ANTICCLOCKWISE : (event = event);
+        (menuEventGrp & MENU_EVENT_CLICK) ? event |= MENU_EVENT_CLICK : (event = event);
+        (menuEventGrp & MENU_EVENT_DOUBLE_CLICK) ? event |= MENU_EVENT_DOUBLE_CLICK : (event = event);
+        printf("receive menuEventGrp:%d\r\n", menuEventGrp);
+        menuEventGrp = 0;
+
+        if(!currentMenu || !currentMenu->menuEventProcess){
+            printf("NULL pointer %p, %p!\r\n", currentMenu, currentMenu->menuEventProcess);
+            event = MENU_EVENT_NONE;
+            continue;
+        }
+        currentMenu->menuEventProcess(&event);
+        event = MENU_EVENT_NONE;
+    }
+}
 
 int8_t creatMenuItemList(char *menuItemTittleGrp[])
 {
@@ -46,25 +122,49 @@ int8_t creatMenuItemList(char *menuItemTittleGrp[])
     return 0;
 }
 
-menu_obj_t *createMenuObj(menu_item_obj_t *menuItemList, uint8_t menuState)
+menu_obj_t *createMenuObj(char *menuName, menu_item_obj_t *menuItemList, uint8_t menuState, menuEventProcess_t eventProcess)
 {
+    menu_obj_t *menuObj = NULL;
     if(!menuItemList){
         printf("[%s] para[menuItemList] is NULL\r\n", __FUNCTION__);
-        return rootMenuObj; 
+        return NULL; 
     }
-    if(rootMenuObj){
-        printf("rootMenuObj already exists\r\n");
-        return rootMenuObj;
-    }
-    if(NULL == (rootMenuObj = calloc(1, sizeof(menu_obj_t)))){
+    if(NULL == (menuObj = calloc(1, sizeof(menu_obj_t)))){
         printf("Create new menu failed!!!\r\n");
         return NULL;
     }
-    rootMenuObj->itemList = menuItemList;
-    rootMenuObj->state = menuState;
-    rootMenuObj->currentPageIndex = 0;
-    rootMenuObj->selectedItemIndex = 0;
-    return rootMenuObj;
+
+    if(menuName){
+        char *nameBuff = calloc(1, strlen(menuName) + 1);
+        if(!nameBuff){
+            printf("[%s] create nameBuff failed\r\n", __FUNCTION__);
+        }
+        else{
+            menuObj->menuName = nameBuff;
+            strcpy(menuObj->menuName, menuName);
+        }
+    }
+    else
+        printf("[%s] menuName is NULL\r\n", __FUNCTION__);
+
+    menuObj->itemList = menuItemList;
+
+    uint8_t i = 0;
+    menu_item_obj_t *itemList = menuItemList;
+    for(i = 0; itemList; i++){
+        itemList = itemList->nextItem;
+    }
+    menuObj->itemTotal = i;
+
+    menuObj->state = menuState;
+    menuObj->currentPageIndex = 0;
+    menuObj->selectedItemIndex = 0;
+    menuObj->menuEventProcess = eventProcess;
+    if(!eventProcess)
+        printf("Menu event process is NULL\r\n");
+    if(MENU_STATE_ACTIVE == menuState)
+        currentMenu = menuObj;
+    return menuObj;
 }
 
 menu_obj_t *getRootMenuObj(void)
@@ -89,6 +189,12 @@ int8_t clearUILine(uint8_t line)
     return 0;
 }
 
+int8_t clearScr(void)
+{
+    Lcd12864_ClearScreen();
+	return 0;
+}
+
 int8_t refreshUILine(uint8_t line, char *cont, uint8_t fs)
 {
     if(line >= PAGE_MAX_LINE){
@@ -110,40 +216,39 @@ int8_t refreshUILine(uint8_t line, char *cont, uint8_t fs)
 
     return 0;
 }
-/**
- * Display the full menu of the entire page
- * startItemIndex:Index of menu items in the menu group
- */
-#if 0
-int8_t refreshUIPage(char **startItem, uint8_t startItemIndex, uint8_t reversDisplayIndex)
-{
-	if(!startItem){
-		printf("[%s] param[startItem] NULL\r\n", __FUNCTION__);
-		return -1;
-	}
-	if(startItemIndex >= MENU_INDEX_ITEMS_MAX){
-		printf("[%s] param[startItemIndex] error:%d\r\n", __FUNCTION__, startItemIndex);
-		return -1;
-	}    
-	if(reversDisplayIndex >= MENU_INDEX_ITEMS_MAX){
-		printf("[%s] param[reversDisplayIndex] error:%d\r\n", __FUNCTION__, reversDisplayIndex);
-		return -1;
-	}
 
-    uint8_t i = 0;
-    uint8_t fs = 0;
-    for(i = 0; i < PAGE_MAX_LINE && NULL != *(startItemIndex + i); i++){
-        if(reversDisplayIndex == startItemIndex + i)
-            fs = 1;
-        if(refreshDDRAMLine(i, *(startItemIndex + i), fs)){
-            printf("refreshDDRAMLine failed\r\n");
-            printf("Times:%d\r\n", i+1);
-            return -1;
+int8_t refreshUIMenu(menu_obj_t *menuObj)
+{
+    if(!menuObj){
+        printf("[%s] para[menuObj] is NULL\r\n", __FUNCTION__);
+        return -1;
+    }
+    if(!(menuObj->itemList) || !(menuObj->itemList->itenTitle)){
+        printf("[%s] menuObj->itemList error, menuObj->itemList:%p, menuObj->itemList->itenTitle:%p\r\n", __FUNCTION__, menuObj->itemList, menuObj->itemList->itenTitle);
+        return -1;
+    }
+
+    if(MENU_STATE_SLEEP == menuObj->state){
+        printf("Menu[%s] inactive state\r\n", menuObj->menuName);
+        return -2;
+    }
+    menu_item_obj_t *item = menuObj->itemList;
+    while(item){
+        if(item->itemIndex == menuObj->currentPageIndex){
+            break;
         }
+        item = item->nextItem;
+    }
+
+    clearScr();
+    uint8_t i, fs;
+    for(i = 0; item && i < PAGE_MAX_LINE; i++){
+        (item->itemIndex == menuObj->selectedItemIndex) ? fs = 1 : (fs = 0);
+        refreshUILine(i, item->itenTitle, fs);
+        item = item->nextItem;
     }
     return 0;
 }
-#endif
 
 void refreshMainMenuTest(void)
 {
@@ -164,7 +269,7 @@ int8_t userMenuInit(void)
         return -1;
     }
 
-    menu_obj_t *rootMenuObj = createMenuObj(rootMenuItemList, MENU_STATE_ACTIVE);
+    rootMenuObj = createMenuObj("Root menu", rootMenuItemList, MENU_STATE_ACTIVE, rootMenuEventProcess);
     if(!rootMenuObj){
         printf("Create root menu failed\r\n");
         return -1;
@@ -184,5 +289,20 @@ int8_t userMenuInit(void)
         refreshUILine(line + i, itemList->itenTitle, fs);
 				itemList = itemList->nextItem;
     }
+
+    if(NULL == (xMenuEventGrp = xEventGroupCreate())){
+        printf("Create menu event grp failed\r\n");
+        return -1;
+    }
+
+    osThreadDef(menuEventProcess, menuEventProcessTask, osPriorityNormal, 0, 128);
+    osThreadId menuEventProcessTaskHandle = osThreadCreate(osThread(menuEventProcess), NULL);
+    if(!menuEventProcessTaskHandle){
+        printf("Create menuEventProcessTask failed\r\n");
+        return -1;
+    }
+
+    //TODO:After all object creation failures, a cleanup action must be performed
+
     return 0;
 }

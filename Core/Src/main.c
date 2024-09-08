@@ -142,7 +142,7 @@ int main(void)
   Init_ST7567();
 	HAL_Delay(1000);
 	
-  userMenuInit()
+  userMenuInit();
 
   /* 使能调试串口的接接收 */
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
@@ -225,7 +225,7 @@ void def_printf(const char *format, ...)
   va_list args;
   char pbuff[256] = {0};
 
-  // 初�?�化args，获取format以后的参数（包括format，format�???????�???????就是参数，在获取没意义）
+  // 初�?�化args，获取format以后的参数（包括format，format�????????�????????就是参数，在获取没意义）
   va_start(args, format);
 
   // // 调用 vprintf，将格式化字符串和参数列表输出到标准输出
@@ -237,7 +237,7 @@ void def_printf(const char *format, ...)
   // 清理 args
   va_end(args);
 
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�????????????
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);  //等待uart发�?�完�?????????????
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -249,8 +249,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
    */
 
   // def_printf("%c", RxData);
-  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�???????????????
-  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�???????????????测UART发�?�结�???????????????
+  HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF); //将收到的信息发�?�出�????????????????
+  while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);//�????????????????测UART发�?�结�????????????????
 	
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 }

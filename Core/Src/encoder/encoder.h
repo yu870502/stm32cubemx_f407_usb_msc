@@ -2,6 +2,7 @@
 #define __ENCODER__H__
 
 #include "stm32f4xx_hal_gpio.h"
+#include "main.h"
 
 #define Encoder_A_Pin GPIO_PIN_10
 #define Encoder_A_GPIO_Port GPIOE
