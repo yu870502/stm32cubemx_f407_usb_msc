@@ -21,7 +21,5 @@ void WRITE_CHAR(uchar plat, uchar column, uchar chr, uchar fs);
 void Lcd12864_ClearScreen(void);
 void Disp_Nub8X16(uchar Row,uchar Col,uchar Number,uchar fs);
 
-void lcd_hello(void);
-
 #endif
 

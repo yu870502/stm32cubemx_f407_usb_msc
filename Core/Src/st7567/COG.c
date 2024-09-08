@@ -260,36 +260,3 @@ void Init_ST7567()
 	Write_ST7567_COM(0x00);//00--10
 	Lcd12864_ClearScreen();//清屏
 }
-
-void lcd_hello(void)
-{
-	refreshDDRAMLine(0, "hello", 1);
-	// WRITE_CHAR(0,0,'H',1);
-	// WRITE_CHAR(0,1,'e',1);
-	// WRITE_CHAR(0,2,'l',1);
-	// WRITE_CHAR(0,3,'l',1);
-	// WRITE_CHAR(0,4,'o',1);
-	
-	// WRITE_CHAR(2,0,'n',1);
-	// WRITE_CHAR(2,1,'i',1);
-	// WRITE_CHAR(2,2,'h',1);
-	// WRITE_CHAR(2,3,'a',1);
-	// WRITE_CHAR(2,4,'o',1);
-
-	// WRITE_CHAR(3,0,'0',1);
-	// WRITE_CHAR(3,1,'1',1);
-	// WRITE_CHAR(3,2,'2',1);
-	// WRITE_CHAR(3,3,'3',1);
-	// WRITE_CHAR(3,4,'4',1);
-	// WRITE_CHAR(3,5,'5',1);
-	// WRITE_CHAR(3,6,'6',1);
-	// WRITE_CHAR(3,7,'7',1);
-	// WRITE_CHAR(3,8,'8',1);
-	// WRITE_CHAR(3,9,'9',1);
-	// WRITE_CHAR(3,10,'a',1);
-	// WRITE_CHAR(3,11,'b',1);
-	// WRITE_CHAR(3,12,'c',1);
-	// WRITE_CHAR(3,13,'d',1);
-	// WRITE_CHAR(3,14,'e',1);
-	// WRITE_CHAR(3,15,'f',1);
-}

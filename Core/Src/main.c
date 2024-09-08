@@ -142,8 +142,7 @@ int main(void)
   Init_ST7567();
 	HAL_Delay(1000);
 	
-  // lcd_hello();
-  refreshMainMenuTest();
+  userMenuInit()
 
   /* 使能调试串口的接接收 */
   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
