@@ -23,7 +23,6 @@ int create_encoder(void)
 
 	__g_encoderObj->user_process = EncoderKeyNotifyProcess;
 
-
 	return ret;
 }
 

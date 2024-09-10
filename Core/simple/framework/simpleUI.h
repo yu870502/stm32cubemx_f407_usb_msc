@@ -49,13 +49,13 @@ extern EventGroupHandle_t xMenuEventGrp;
 
 int8_t clearUILine(uint8_t line);
 int8_t refreshUILine(uint8_t line, char *cont, uint8_t fs);
-void refreshMainMenuTest(void);
-
-menu_obj_t *createMenuObject(void);
-menu_obj_t *getMenuObject(void);
-
 int8_t refreshUIMenu(menu_obj_t *menuObj);
 
-int8_t userMenuInit(void);
+menu_obj_t *getCurrentMenu(void);
+
+int8_t creatMenuItemList(menu_item_obj_t **menuItemList, char *menuItemTittleGrp[]);
+menu_obj_t *createMenuObj(char *menuName, menu_item_obj_t *menuItemList, uint8_t menuState, menuEventProcess_t eventProcess);
+
+int8_t startMenuEventProcess(void);
 
 #endif

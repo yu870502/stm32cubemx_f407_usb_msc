@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "main.h"
-#include "COG.h"
+#include "st7567.h"
 #include "LCDFont.h"
 
 // #define SPI_DC_Pin GPIO_PIN_2
@@ -259,4 +259,5 @@ void Init_ST7567()
 	Write_ST7567_COM(0xf8);//背压比设置
 	Write_ST7567_COM(0x00);//00--10
 	Lcd12864_ClearScreen();//清屏
+	HAL_Delay(1000);
 }
