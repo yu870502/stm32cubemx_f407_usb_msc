@@ -6,6 +6,7 @@
 #include "cmsis_os.h"
 #include "simpleUI.h"
 #include "simple_log.h"
+#include "simple_obj.h"
 #include "st7567.h"
 
 int8_t clearUILine(uint8_t line)
@@ -21,13 +22,7 @@ int8_t clearUILine(uint8_t line)
     return 0;
 }
 
-int8_t clearScr(void)
-{
-    Lcd12864_ClearScreen();
-	return 0;
-}
-
-int8_t refreshUILine(uint8_t line, char *cont, uint8_t fs)
+int8_t refreshUILine(uint8_t line, char *cont, unsigned int reverse)
 {
     if(line >= PAGE_MAX_LINE){
         LOG_EOR("[%s] para [line] error:%d", __func__, line);
@@ -41,7 +36,7 @@ int8_t refreshUILine(uint8_t line, char *cont, uint8_t fs)
 		LOG_EOR("[%s] param[len] is 0", __FUNCTION__);
 		return -1;
 	}    
-    if(refreshDDRAMLine(line, cont, fs)){
+    if(refreshDDRAMLine(line, cont, reverse)){
         LOG_EOR("refreshDDRAMLine failed");
         return -1;
     }
@@ -49,34 +44,79 @@ int8_t refreshUILine(uint8_t line, char *cont, uint8_t fs)
     return 0;
 }
 
-int8_t refreshUIMenu(menu_obj_t *menuObj)
+int8_t clearScr(void)
 {
-    if(!menuObj){
-        LOG_EOR("[%s] para[menuObj] is NULL", __FUNCTION__);
-        return -1;
-    }
-    if(!(menuObj->itemList) || !(menuObj->itemList->itenTitle)){
-        LOG_EOR("[%s] menuObj->itemList error, menuObj->itemList:%p, menuObj->itemList->itenTitle:%p", __FUNCTION__, menuObj->itemList, menuObj->itemList->itenTitle);
+    Lcd12864_ClearScreen();
+	return 0;
+}
+
+int8_t refreshItemLine(uint8_t line, item_obj_t *item)
+{
+    IS_OBJ_NOT_EXIST(item, -1);
+    IS_NULL(item->itemTitle, -1);
+
+    if(line >= PAGE_MAX_LINE){
+        LOG_EOR("[%s] para [line] error:%d", __func__, line);
         return -1;
     }
 
-    if(MENU_STATE_SLEEP == menuObj->state){
-        LOG_EOR("Menu[%s] inactive state", menuObj->menuName);
+    // LOG_WA("title=%s, type=%d, mode=%d", item->itemTitle, item->type, item->mode);
+    unsigned int reverseMask = 0;
+    if(item->itemIndex == item->parentMenu->selectedItemIndex){
+        if(ITEM_TYPE_TITLE_VARIABLE == item->type){
+            char *pos = strchr(item->itemTitle, ITEM_TITLE_DELIMITER);
+            uint8_t reversTotal = pos - item->itemTitle;
+            // LOG_WA("reversTotal=%d", reversTotal);
+            uint8_t i = 0;
+            reverseMask = 0;
+            if(ITEM_MODE_VIEW == item->mode){
+                for(i = 0; i < reversTotal; i++){
+                    reverseMask |= (0x8000 >> i);
+                }
+            }
+            else{
+                uint8_t offset = reversTotal + 1;   //title:var
+                reversTotal = ITEM_TITLE_MAX - offset;
+                for(i = 0; i < reversTotal; i++){
+                    reverseMask |= (0x8000 >> offset + 1 + i);
+                }
+            }
+        }
+        else
+            reverseMask = 0xffff;
+    }
+    else{
+        reverseMask = 0;
+    }
+
+    // LOG_WA("reverseMask=%#X", reverseMask);
+    refreshUILine(line, item->itemTitle, reverseMask);
+    return 0;
+}
+
+int8_t refreshMenuPage(menu_obj_t *menu)
+{
+    IS_NULL(menu, -1);
+    IS_NULL((menu->itemHead), -1);
+
+    if(MENU_STATE_SLEEP == menu->state){
+        LOG_EOR("Menu[%s] inactive state", menu->menuName);
         return -2;
     }
-    menu_item_obj_t *item = menuObj->itemList;
+    item_obj_t *item = menu->itemHead;
     while(item){
-        if(item->itemIndex == menuObj->currentPageIndex){
+        if(item->itemIndex == menu->currentPageIndex){
             break;
         }
         item = item->nextItem;
     }
 
     clearScr();
-    uint8_t i, fs;
+    uint8_t i;
     for(i = 0; item && i < PAGE_MAX_LINE; i++){
-        (item->itemIndex == menuObj->selectedItemIndex) ? fs = 1 : (fs = 0);
-        refreshUILine(i, item->itenTitle, fs);
+        if(item->loadItemVar)
+            item->loadItemVar(item);
+        refreshItemLine(i, item);
         item = item->nextItem;
     }
     return 0;
@@ -135,8 +175,8 @@ int8_t startMenuEventProcess(void)
         LOG_EOR("Create menu event grp failed");
         return -1;
     }
-
-    osThreadDef(menuEventProcess, menuEventProcessTask, osPriorityNormal, 0, 128);
+    LOG_IN("startMenuEventProcess");
+    osThreadDef(menuEventProcess, menuEventProcessTask, osPriorityNormal, 0, 512);
     menuEventProcessTaskHandle = osThreadCreate(osThread(menuEventProcess), NULL);
     if(!menuEventProcessTaskHandle){
         LOG_EOR("Create menuEventProcessTask failed");
@@ -145,47 +185,10 @@ int8_t startMenuEventProcess(void)
     return 0;
 }
 
-int8_t creatMenuItemList(menu_item_obj_t **menuItemList, char *menuItemTittleGrp[])
+menu_obj_t *createMenu(char *menuName, menuEventProcess_t menuEventProcess)
 {
-    if(!menuItemList){
-        LOG_EOR("menuItemList is NUL");
-        return -1;
-    }
-    uint8_t i = 0;
-    menu_item_obj_t *newItem = NULL, *preItem = NULL;
-    for(i = 0; menuItemTittleGrp[i]; i++){
-        if(NULL == (newItem = calloc(1, sizeof(menu_item_obj_t)))){
-            LOG_EOR("Create new item failed");
-            return -1;
-        }
-        newItem->itemIndex = i;
-        newItem->itenTitle = menuItemTittleGrp[i];
-        newItem->nextItem = NULL;
-        newItem->subMenu = NULL;
-        if(!(*menuItemList)){  //head node
-            preItem = *menuItemList = newItem;
-            preItem->nextItem = NULL;
-        }
-        else{
-            preItem->nextItem = newItem;
-            preItem = newItem;
-        }
-    }
-    LOG_IN("creatMenuItemList success, node numbers:%d", i);
-    return 0;
-}
-
-menu_obj_t *createMenuObj(char *menuName, menu_item_obj_t *menuItemList, uint8_t menuState, menuEventProcess_t eventProcess)
-{
-    menu_obj_t *menuObj = NULL;
-    if(!menuItemList){
-        LOG_EOR("[%s] para[menuItemList] is NULL", __FUNCTION__);
-        return NULL; 
-    }
-    if(NULL == (menuObj = calloc(1, sizeof(menu_obj_t)))){
-        LOG_EOR("Create new menu failed!!!");
-        return NULL;
-    }
+    menu_obj_t *menu = NULL;
+    CREATE_OBJ(menu, menu_obj_t, NULL);
 
     if(menuName){
         char *nameBuff = calloc(1, strlen(menuName) + 1);
@@ -193,30 +196,80 @@ menu_obj_t *createMenuObj(char *menuName, menu_item_obj_t *menuItemList, uint8_t
             LOG_EOR("[%s] create nameBuff failed", __FUNCTION__);
         }
         else{
-            menuObj->menuName = nameBuff;
-            strcpy(menuObj->menuName, menuName);
+            menu->menuName = nameBuff;
+            strncpy(menu->menuName, menuName, strlen(menuName));
         }
     }
     else
-        LOG_EOR("[%s] menuName is NULL", __FUNCTION__);
+        LOG_WA("[%s] menuName is NULL", __FUNCTION__);
 
-    menuObj->itemList = menuItemList;
+    menu->state = MENU_STATE_SLEEP;
+    menu->itemTotal = 0;
+    menu->itemHead = NULL;
+    menu->currentPageIndex = 0;
+    menu->selectedItemIndex = 0;
+    menu->menuEventProcess = menuEventProcess;
+    if(!menuEventProcess)
+        LOG_WA("Menu event process is NULL");
 
-    uint8_t i = 0;
-    menu_item_obj_t *itemList = menuItemList;
-    for(i = 0; itemList; i++){
-        itemList = itemList->nextItem;
+    return menu;
+}
+
+item_obj_t *createItem(itemType_t type, char *title, loadItemVar_t loadItemVar, ItemEventProcess_t ItemEventProcess)
+{
+    IS_NULL(title, NULL);
+    // IS_NULL(loadItemVar, NULL);
+    // IS_NULL(ItemEventProcess, NULL);
+
+    item_obj_t *item = NULL;
+    CREATE_OBJ(item, item_obj_t, NULL);
+    item->type = type;
+    item->mode = ITEM_MODE_VIEW;
+    strncpy(item->itemTitle, title, strlen(title));
+    item->loadItemVar = loadItemVar;
+    item->ItemEventProcess = ItemEventProcess;
+    item->itemIndex = 0;
+    item->nextItem = NULL;
+    item->parentMenu = NULL;
+    return item;
+}
+
+int8_t addItemToMenu(menu_obj_t *menu, item_obj_t *item)
+{
+    IS_NULL(menu, -1);
+    IS_NULL(item, -1);
+
+    if(!menu->itemHead){
+        menu->itemHead = item;
+        item->itemIndex = 0;
+        menu->itemTotal = 1;
+        item->parentMenu = menu;
+        return 0;
     }
-    menuObj->itemTotal = i;
 
-    menuObj->state = menuState;
-    menuObj->currentPageIndex = 0;
-    menuObj->selectedItemIndex = 0;
-    menuObj->menuEventProcess = eventProcess;
-    if(!eventProcess)
-        LOG_EOR("Menu event process is NULL");
-    if(MENU_STATE_ACTIVE == menuState)
-        currentMenu = menuObj;
-    return menuObj;
+    item_obj_t *it = menu->itemHead;
+    uint8_t i = 1;
+    while(it->nextItem){
+        i++;
+        it = it->nextItem;
+    }
+    it->nextItem = item;
+    item->itemIndex = i;
+    item->parentMenu = menu;
+    menu->itemTotal = i + 1;
+
+    return 0;
+}
+
+int8_t startMenu(menu_obj_t *menu)
+{
+    IS_NULL(menu, -1);
+
+    currentMenu = menu;
+    menu->state = MENU_STATE_ACTIVE;
+
+    refreshMenuPage(menu);
+    startMenuEventProcess();
+    return 0;
 }
 

@@ -16,7 +16,7 @@ void Write_ST7567_DATA(uchar DATA_4SPI);
 void HDReset(void);
 void clear_screen(uchar xx);
 int8 clearDDRAMLine(uchar line);
-int8 refreshDDRAMLine(uchar line, char *cont, uchar fs);
+int8 refreshDDRAMLine(uchar line, char *cont, unsigned int reverse);
 void WRITE_CHAR(uchar plat, uchar column, uchar chr, uchar fs);
 void Lcd12864_ClearScreen(void);
 void Disp_Nub8X16(uchar Row,uchar Col,uchar Number,uchar fs);

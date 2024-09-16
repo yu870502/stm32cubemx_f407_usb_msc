@@ -2,7 +2,7 @@
 #include "cmsis_os.h"
 
 #include "simple_log.h"
-#include "mcu.h"
+#include "mcu_obj.h"
 
 #include "task.h"
 
@@ -18,26 +18,12 @@
 #include "simpleUserUI.h"
 
 #include "stm32f4xx_hal_def.h"
-#include "mcu.h"
-
-void getMCUTempTask(void *arg)
-{
-    for(;;){
-        get_mcu_temp(NULL);
-    }
-}
 
 int8_t app_init(void)
 {
 	LOG_IN("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
 
-    osThreadDef(getMCUTemp, getMCUTempTask, osPriorityNormal, 0, 128);
-    osThreadId defaultTaskHandle = osThreadCreate(osThread(getMCUTemp), NULL);
-    if(!defaultTaskHandle)
-    {
-        LOG_EOR("Create getMCUTempTask failed");
-        return -1;
-    }
+    mcu_obj_start();
 
 	Init_ST7567();
 		

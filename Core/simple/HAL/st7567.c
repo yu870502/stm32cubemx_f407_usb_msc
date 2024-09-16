@@ -5,6 +5,8 @@
 #include "st7567.h"
 #include "LCDFont.h"
 
+#include "simple_log.h"
+
 // #define SPI_DC_Pin GPIO_PIN_2
 // #define SPI_DC_GPIO_Port GPIOA
 // #define SPI_RST_Pin GPIO_PIN_4
@@ -119,7 +121,7 @@ int8 clearDDRAMLine(uchar line)
 	return 0;
 }
 
-int8 refreshDDRAMLine(uchar line, char *cont, uchar fs)
+int8 refreshDDRAMLine(uchar line, char *cont, unsigned int reverse)
 {
 	if(line >= (DDRAM_PAGES_MAX >> 1)){
 		printf("[%s] param[line] error:%d\r\n", __FUNCTION__, line);
@@ -136,8 +138,11 @@ int8 refreshDDRAMLine(uchar line, char *cont, uchar fs)
 	}
 
 	uchar i = 0;
+	uchar re = 0;
 	for(i = 0; i < len; i++){
-		WRITE_CHAR(line, i, *(cont + i), fs);
+		reverse & (0x8000 >> i) ? re = 1 : (re = 0);
+		// LOG_WA("line=%d, re=%#X",line, re);
+		WRITE_CHAR(line, i, *(cont + i), re);
 	}
 	return 0;
 }

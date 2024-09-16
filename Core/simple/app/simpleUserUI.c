@@ -1,44 +1,89 @@
+#include <string.h>
+
 #include "main.h"
 #include "simpleUI.h"
+#include "simpleUserUI.h"
 
 #include "simple_log.h"
+#include "simple_obj.h"
 
-//----------------------------------main menu---------------------------------------
-char *rootMenuItemTittleGrp[] = {
-    MAIN_MENU_ITEM_MCU_TEMP,
-    MAIN_MENU_ITEM_SET_SCREEN_EV,
-    MAIN_MENU_ITEM_SCR_BL,
-    MAIN_MENU_ITEM_LOG,
-    MAIN_MENU_ITEM_GONGDE,
-    MAIN_MENU_ITEM_FW_VERSION,
-    NULL,
-};
-menu_item_obj_t *rootMenuItemList = NULL;
-menu_obj_t *rootMenuObj = NULL;
+#include "mcu_obj.h"
+//----------------------------------define item---------------------------------------
+int8_t loadItemVar_mcuTemp(item_obj_t *item)
+{
+    IS_NULL(item, -1);
+
+    mcu_obj_t *mcu;
+    if(NULL == (mcu = getMcuObj())){
+        LOG_EOR("getMcuObj is NULL");
+        return -1;
+    }
+    float t = 0.0;
+    LOG_IN("&t = %p", &t);
+    if(mcu->getMcuTemp(&t)){
+        LOG_EOR("getMcuTemp failed");
+        return -1;
+    }
+    
+    // char *varPos = NULL;
+    // if(NULL == (varPos = strchr(item->itemTitle, ITEM_TITLE_DELIMITER))){
+    //     LOG_EOR("arg error");
+    //     return -1;
+    // }
+    memset(item->itemTitle, 0, sizeof(item->itemTitle));
+    sprintf(item->itemTitle, ITEM_TITLE_VAR_MCU_TEMP, t);
+
+    return 0;
+}
+int8_t loadItemVar_scrRefreshRate(item_obj_t *item)
+{
+    IS_NULL(item, -1);
+    return 0;
+}
+int8_t loadItemVar_scrEV(item_obj_t *item)
+{
+    IS_NULL(item, -1);
+    return 0;
+}
+int8_t loadItemVar_scrBL(item_obj_t *item)
+{
+    IS_NULL(item, -1);
+    return 0;
+}
+
+int8_t loadItemVar_FW_VER(item_obj_t *item)
+{
+		IS_NULL(item, -1);
+    return 0;
+}
+
+
+menu_obj_t *rootMenu = NULL;
 uint8_t rootMenuEventProcess(uint8_t *event)
 {
     uint8_t itemTotal = 0;
     switch(*event){
         case MENU_EVENT_CLOCKWISE:      //菜单下滚动封装成api
-        itemTotal = rootMenuObj->selectedItemIndex + 1;
-        if(itemTotal < rootMenuObj->itemTotal){
-            rootMenuObj->selectedItemIndex++;
-            if(rootMenuObj->selectedItemIndex - rootMenuObj->currentPageIndex >= PAGE_MAX_LINE){
-                if(rootMenuObj->currentPageIndex < rootMenuObj->itemTotal - 1){
-                    rootMenuObj->currentPageIndex++;
+        itemTotal = rootMenu->selectedItemIndex + 1;
+        if(itemTotal < rootMenu->itemTotal){
+            rootMenu->selectedItemIndex++;
+            if(rootMenu->selectedItemIndex - rootMenu->currentPageIndex >= PAGE_MAX_LINE){
+                if(rootMenu->currentPageIndex < rootMenu->itemTotal - 1){
+                    rootMenu->currentPageIndex++;
                 }
             }
         }break;
 
         case MENU_EVENT_ANTICCLOCKWISE: //菜单上滚动封装成api
-        if(rootMenuObj->selectedItemIndex > 0){
-            rootMenuObj->selectedItemIndex--;
-            if(rootMenuObj->selectedItemIndex < rootMenuObj->currentPageIndex){
-                rootMenuObj->currentPageIndex--;
+        if(rootMenu->selectedItemIndex > 0){
+            rootMenu->selectedItemIndex--;
+            if(rootMenu->selectedItemIndex < rootMenu->currentPageIndex){
+                rootMenu->currentPageIndex--;
             }
         }break;
 
         case MENU_EVENT_CLICK:
+        
         break;
         case MENU_EVENT_DOUBLE_CLICK:
         break;
@@ -46,11 +91,11 @@ uint8_t rootMenuEventProcess(uint8_t *event)
         default:
             printf("Unknow menu event:%d\r\n", *event);break;
     }
-    printf("Menu name:%s\r\n", rootMenuObj->menuName);
-    printf("selectedItem:%d\r\n", rootMenuObj->selectedItemIndex);
-    printf("currentPage:%d\r\n\r\n", rootMenuObj->currentPageIndex);
+    printf("Menu name:%s\r\n", rootMenu->menuName);
+    printf("selectedItem:%d\r\n", rootMenu->selectedItemIndex);
+    printf("currentPage:%d\r\n\r\n", rootMenu->currentPageIndex);
 
-    refreshUIMenu(rootMenuObj);
+    refreshMenuPage(rootMenu);
     return 0;
 }
 
@@ -60,25 +105,74 @@ uint8_t rootMenuEventProcess(uint8_t *event)
 
 //----------------------------------subn menu---------------------------------------
 
+void printItem(menu_obj_t *menu){
+    if(!(menu->itemHead)){
+        LOG_WA("menu is NULL");
+        return;
+    }
+    item_obj_t *m = menu->itemHead;
+    while(m){
+        LOG_DB("item[%d] title:%s", m->itemIndex, m->itemTitle);
+        m = m->nextItem;
+    }
+}
+
+
 int8_t userMenuInit(void)
 {
-    if(creatMenuItemList(&rootMenuItemList, rootMenuItemTittleGrp)){
-        LOG_EOR("creatMenuItemList failed");
-        return -1;
-    }
-    rootMenuObj = createMenuObj("Root menu", rootMenuItemList, MENU_STATE_ACTIVE, rootMenuEventProcess);
-    if(!rootMenuObj){
-        LOG_EOR("createMenuObj failed");
-        return -1;
-    }
-    if(refreshUIMenu(rootMenuObj)){
-        LOG_EOR("refreshUIMenu failed");
-        return -1;
-    }
+    rootMenu = createMenu("Root menu", rootMenuEventProcess);
+    IS_NULL(rootMenu, -1);
 
-    startMenuEventProcess();
+    item_obj_t *item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITLE_VAR_MCU_TEMP, loadItemVar_mcuTemp, NULL);
+    LOG_DB("type=%d, ", item->type);
+    LOG_DB("itemIndex=%d, ", item->itemIndex);
+    LOG_DB("type=%s, ", item->itemTitle);
+    LOG_DB("type=%p, ", item->parentMenu);
+    LOG_DB("rootMenu=%p, ", rootMenu);
+    printItem(rootMenu);
 
-    //TODO:After all object creation failures, a cleanup action must be performed
+    IS_NULL(item, -1);
+    if(addItemToMenu(rootMenu, item)){
+        LOG_EOR("addItemToMenu failed");
+        return -1;
+    }
+    printItem(rootMenu);
+
+    item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITEL_VAR_SCR_REFRESH_RATE, loadItemVar_scrRefreshRate, NULL);
+    IS_NULL(item, -1);
+    if(addItemToMenu(rootMenu, item)){
+        LOG_EOR("addItemToMenu failed");
+        return -1;
+    }
+    printItem(rootMenu);
+
+    item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITEL_VAR_SCR_EV, loadItemVar_scrEV, NULL);
+    IS_NULL(item, -1);
+    if(addItemToMenu(rootMenu, item)){
+        LOG_EOR("addItemToMenu failed");
+        return -1;
+    }
+    item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITLE_VAR_SCR_BL, loadItemVar_scrBL, NULL);
+    IS_NULL(item, -1);
+    if(addItemToMenu(rootMenu, item)){
+        LOG_EOR("addItemToMenu failed");
+        return -1;
+    }
+    item = createItem(ITEM_TYPE_TITLE, ITEM_TITLE_GONGDE, NULL, NULL);
+    IS_NULL(item, -1);
+    if(addItemToMenu(rootMenu, item)){
+        LOG_EOR("addItemToMenu failed");
+        return -1;
+    }  
+    item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITLE_VAR_FW_VER, loadItemVar_FW_VER, NULL);
+    IS_NULL(item, -1);
+    if(addItemToMenu(rootMenu, item)){
+        LOG_EOR("addItemToMenu failed");
+        return -1;
+    }
+    printItem(rootMenu);
+
+    startMenu(rootMenu);
 
     return 0;
 }
