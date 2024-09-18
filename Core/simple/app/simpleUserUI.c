@@ -18,20 +18,14 @@ int8_t loadItemVar_mcuTemp(item_obj_t *item)
         LOG_EOR("getMcuObj is NULL");
         return -1;
     }
-    float t = 0.0;
-    LOG_IN("&t = %p", &t);
-    if(mcu->getMcuTemp(&t)){
+    float temp = 0.0f;
+    if(mcu->getMcuTemp(&temp)){
         LOG_EOR("getMcuTemp failed");
         return -1;
     }
     
-    // char *varPos = NULL;
-    // if(NULL == (varPos = strchr(item->itemTitle, ITEM_TITLE_DELIMITER))){
-    //     LOG_EOR("arg error");
-    //     return -1;
-    // }
     memset(item->itemTitle, 0, sizeof(item->itemTitle));
-    sprintf(item->itemTitle, ITEM_TITLE_VAR_MCU_TEMP, t);
+    snprintf(item->itemTitle, ITEM_TITLE_MAX, ITEM_TITLE_VAR_MCU_TEMP, temp);
 
     return 0;
 }
@@ -50,40 +44,29 @@ int8_t loadItemVar_scrBL(item_obj_t *item)
     IS_NULL(item, -1);
     return 0;
 }
-
 int8_t loadItemVar_FW_VER(item_obj_t *item)
 {
 		IS_NULL(item, -1);
     return 0;
 }
 
-
 menu_obj_t *rootMenu = NULL;
-uint8_t rootMenuEventProcess(uint8_t *event)
+int8_t rootMenuEventProcess(uint8_t *event)
 {
-    uint8_t itemTotal = 0;
-    switch(*event){
-        case MENU_EVENT_CLOCKWISE:      //菜单下滚动封装成api
-        itemTotal = rootMenu->selectedItemIndex + 1;
-        if(itemTotal < rootMenu->itemTotal){
-            rootMenu->selectedItemIndex++;
-            if(rootMenu->selectedItemIndex - rootMenu->currentPageIndex >= PAGE_MAX_LINE){
-                if(rootMenu->currentPageIndex < rootMenu->itemTotal - 1){
-                    rootMenu->currentPageIndex++;
-                }
-            }
-        }break;
+    IS_NULL(event, -1);
 
-        case MENU_EVENT_ANTICCLOCKWISE: //菜单上滚动封装成api
-        if(rootMenu->selectedItemIndex > 0){
-            rootMenu->selectedItemIndex--;
-            if(rootMenu->selectedItemIndex < rootMenu->currentPageIndex){
-                rootMenu->currentPageIndex--;
-            }
-        }break;
+    switch(*event){
+        case MENU_EVENT_CLOCKWISE:
+            menuItemScroll(rootMenu, MENU_ITME_DOWN_SCROLL);
+        break;
+
+        case MENU_EVENT_ANTICCLOCKWISE:
+            menuItemScroll(rootMenu, MENU_ITME_UP_SCROLL);
+        break;
 
         case MENU_EVENT_CLICK:
-        
+            LOG_DB("click event");
+            menuItemToggleMode(rootMenu);
         break;
         case MENU_EVENT_DOUBLE_CLICK:
         break;
@@ -124,19 +107,11 @@ int8_t userMenuInit(void)
     IS_NULL(rootMenu, -1);
 
     item_obj_t *item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITLE_VAR_MCU_TEMP, loadItemVar_mcuTemp, NULL);
-    LOG_DB("type=%d, ", item->type);
-    LOG_DB("itemIndex=%d, ", item->itemIndex);
-    LOG_DB("type=%s, ", item->itemTitle);
-    LOG_DB("type=%p, ", item->parentMenu);
-    LOG_DB("rootMenu=%p, ", rootMenu);
-    printItem(rootMenu);
-
     IS_NULL(item, -1);
     if(addItemToMenu(rootMenu, item)){
         LOG_EOR("addItemToMenu failed");
         return -1;
     }
-    printItem(rootMenu);
 
     item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITEL_VAR_SCR_REFRESH_RATE, loadItemVar_scrRefreshRate, NULL);
     IS_NULL(item, -1);
@@ -144,7 +119,6 @@ int8_t userMenuInit(void)
         LOG_EOR("addItemToMenu failed");
         return -1;
     }
-    printItem(rootMenu);
 
     item = createItem(ITEM_TYPE_TITLE_VARIABLE, ITEM_TITEL_VAR_SCR_EV, loadItemVar_scrEV, NULL);
     IS_NULL(item, -1);

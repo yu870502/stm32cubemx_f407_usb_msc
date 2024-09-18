@@ -23,10 +23,13 @@
 #define MENU_EVENT_CLICK 0x04
 #define MENU_EVENT_DOUBLE_CLICK 0x08
 
+#define MENU_ITME_UP_SCROLL 0
+#define MENU_ITME_DOWN_SCROLL 1
+
 typedef struct __menu_object menu_obj_t;
 typedef struct __item_obj item_obj_t;
 
-typedef uint8_t (*menuEventProcess_t)(uint8_t *);
+typedef int8_t (*menuEventProcess_t)(uint8_t *);
 typedef struct __menu_object
 {
     char *menuName;    
@@ -34,8 +37,8 @@ typedef struct __menu_object
 
     uint8_t itemTotal;
     item_obj_t *itemHead;
-    uint8_t currentPageIndex;   //
     uint8_t selectedItemIndex;  //The selected item needs to be displayed in reverse
+    uint8_t currentPageIndex;
 
     menuEventProcess_t menuEventProcess;
 }menu_obj_t;
@@ -71,12 +74,15 @@ extern EventGroupHandle_t xMenuEventGrp;
 
 int8_t clearUILine(uint8_t line);
 int8_t refreshUILine(uint8_t line, char *cont, unsigned int reverse);
-int8_t refreshMenuPage(menu_obj_t *menuObj);
+int8_t refreshMenuPage(menu_obj_t *menu);
 
 menu_obj_t *getCurrentMenu(void);
+item_obj_t *matchSlectedItem(menu_obj_t *menu);
+int8_t menuItemScroll(menu_obj_t *menu, uint8_t scroll);
+int8_t menuItemToggleMode(menu_obj_t *menu);
 
-menu_obj_t *createMenu(char *menuName, menuEventProcess_t menuEventProcess);
-item_obj_t *createItem(itemType_t type, char *title, loadItemVar_t loadItemVar, ItemEventProcess_t ItemEventProcess);
+menu_obj_t *createMenu(const char *menuName, menuEventProcess_t menuEventProcess);
+item_obj_t *createItem(itemType_t type, const char *title, loadItemVar_t loadItemVar, ItemEventProcess_t ItemEventProcess);
 int8_t addItemToMenu(menu_obj_t *menu, item_obj_t *item);
 
 int8_t startMenuEventProcess(void);

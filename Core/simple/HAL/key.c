@@ -152,11 +152,11 @@ void key_init(void)
     Queue_key_evt_val_handle = xQueueCreate(5, sizeof(uint16_t));
 
     //Key event sampling task
-    osThreadDef(key1_evt_scan, key1_scan_task, osPriorityAboveNormal, 0, 1024);
+    osThreadDef(key1_evt_scan, key1_scan_task, osPriorityHigh, 0, 1024);
     osThreadId key1_scan_task = osThreadCreate(osThread(key1_evt_scan), NULL); 
 
     //Key event process task
-    osThreadDef(key1_evt_process, key1_evt_process_task, osPriorityAboveNormal, 0, 1024);
+    osThreadDef(key1_evt_process, key1_evt_process_task, osPriorityHigh, 0, 1024);
     osThreadId key1_evt_process_task = osThreadCreate(osThread(key1_evt_process), NULL);  
 }
 

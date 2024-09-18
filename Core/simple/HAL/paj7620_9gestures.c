@@ -118,7 +118,7 @@ int8_t gesture_init(void)
     ret = 0;
   }
 
-  osThreadDef(gesture_scan, gestureProcessTask, osPriorityAboveNormal, 0, 1024);
+  osThreadDef(gesture_scan, gestureProcessTask, osPriorityRealtime, 0, 1024);
   __g_gesture_obj->gestureProcessTask = osThreadCreate(osThread(gesture_scan), NULL);
   if(!__g_gesture_obj->gestureProcessTask){
     ret = -1;

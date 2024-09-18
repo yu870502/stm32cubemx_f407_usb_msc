@@ -32,10 +32,11 @@ int8_t refreshUILine(uint8_t line, char *cont, unsigned int reverse)
 		LOG_EOR("[%s] param[cont] NULL", __FUNCTION__);
 		return -1;
 	}
-	if(!strlen((char *)cont)){
-		LOG_EOR("[%s] param[len] is 0", __FUNCTION__);
-		return -1;
-	}    
+    uint8_t len = strlen(cont);
+    if(len > ITEM_TITLE_MAX){
+        LOG_WA("Line cont error");
+        cont[ITEM_TITLE_MAX] = 0;
+    }
     if(refreshDDRAMLine(line, cont, reverse)){
         LOG_EOR("refreshDDRAMLine failed");
         return -1;
@@ -48,6 +49,68 @@ int8_t clearScr(void)
 {
     Lcd12864_ClearScreen();
 	return 0;
+}
+
+item_obj_t *matchSlectedItem(menu_obj_t *menu)
+{
+    IS_OBJ_NOT_EXIST(menu, NULL);
+    IS_NULL(menu->itemHead, NULL);
+
+    item_obj_t *item = menu->itemHead;
+    while(item){
+        if(item->itemIndex == menu->selectedItemIndex){
+            return item;
+        }
+        item = item->nextItem;
+    }
+    LOG_WA("The selected item was not matched");
+    return NULL;
+}
+
+int8_t menuItemScroll(menu_obj_t *menu, uint8_t scroll)
+{
+    IS_NULL(menu, -1);
+    switch(scroll){
+        case MENU_ITME_UP_SCROLL:
+            if(menu->selectedItemIndex > 0){
+                menu->selectedItemIndex--;
+                if(menu->selectedItemIndex < menu->currentPageIndex){
+                    menu->currentPageIndex--;
+                }
+            }break;
+        case MENU_ITME_DOWN_SCROLL:
+            if(menu->selectedItemIndex + 1 < menu->itemTotal){
+                menu->selectedItemIndex++;
+                if(menu->selectedItemIndex - menu->currentPageIndex >= PAGE_MAX_LINE){
+                    if(menu->currentPageIndex < menu->itemTotal - 1){
+                        menu->currentPageIndex++;
+                    }
+                }
+            }break;
+
+        default:
+            LOG_EOR("Unknow scroll");break;
+    }
+    return 0;
+}
+
+int8_t menuItemToggleMode(menu_obj_t *menu)
+{
+    IS_NULL(menu, -1);
+    item_obj_t *item = matchSlectedItem(menu);
+    IS_NULL(item, -1);
+
+    if(ITEM_MODE_VIEW == item->mode){
+        item->mode = ITEM_MODE_SET_VAR;
+    }
+    else if(ITEM_MODE_SET_VAR == item->mode){
+        item->mode = ITEM_MODE_VIEW;
+    }
+    else{
+        LOG_EOR("item[%s] mode error", item->itemTitle);
+        return -1;
+    }
+    return 0;
 }
 
 int8_t refreshItemLine(uint8_t line, item_obj_t *item)
@@ -64,21 +127,21 @@ int8_t refreshItemLine(uint8_t line, item_obj_t *item)
     unsigned int reverseMask = 0;
     if(item->itemIndex == item->parentMenu->selectedItemIndex){
         if(ITEM_TYPE_TITLE_VARIABLE == item->type){
-            char *pos = strchr(item->itemTitle, ITEM_TITLE_DELIMITER);
-            uint8_t reversTotal = pos - item->itemTitle;
-            // LOG_WA("reversTotal=%d", reversTotal);
+            const char *pos = strchr(item->itemTitle, ITEM_TITLE_DELIMITER);
+            uint8_t titleLen = pos - item->itemTitle;
+            // LOG_WA("titleLen=%d", titleLen);
             uint8_t i = 0;
             reverseMask = 0;
             if(ITEM_MODE_VIEW == item->mode){
-                for(i = 0; i < reversTotal; i++){
+                for(i = 0; i < titleLen; i++){
                     reverseMask |= (0x8000 >> i);
                 }
             }
             else{
-                uint8_t offset = reversTotal + 1;   //title:var
-                reversTotal = ITEM_TITLE_MAX - offset;
-                for(i = 0; i < reversTotal; i++){
-                    reverseMask |= (0x8000 >> offset + 1 + i);
+                uint8_t offset = titleLen + 1;   //title:var
+                titleLen = ITEM_TITLE_MAX - offset;
+                for(i = 0; i < titleLen; i++){
+                    reverseMask |= (0x8000 >> offset + i);
                 }
             }
         }
@@ -132,23 +195,26 @@ EventGroupHandle_t xMenuEventGrp;
 void menuEventProcessTask(void *arg)
 {
     EventBits_t menuEventGrp;
-    uint8_t event = MENU_EVENT_NONE;
+    uint8_t event;
     for(;;){
-        LOG_IN("Watting menuEventGrp:%d", menuEventGrp);
+        LOG_IN("Watting menuEventGrp");
         menuEventGrp = xEventGroupWaitBits(xMenuEventGrp, MENU_EVENT_CLOCKWISE | MENU_EVENT_ANTICCLOCKWISE | MENU_EVENT_CLICK | MENU_EVENT_DOUBLE_CLICK,
                                         pdTRUE, pdFALSE, portMAX_DELAY);
-        (menuEventGrp & MENU_EVENT_CLOCKWISE) ? event |= MENU_EVENT_CLOCKWISE : (event = event);
-        (menuEventGrp & MENU_EVENT_ANTICCLOCKWISE) ? event |= MENU_EVENT_ANTICCLOCKWISE : (event = event);
-        (menuEventGrp & MENU_EVENT_CLICK) ? event |= MENU_EVENT_CLICK : (event = event);
-        (menuEventGrp & MENU_EVENT_DOUBLE_CLICK) ? event |= MENU_EVENT_DOUBLE_CLICK : (event = event);
+        event = menuEventGrp & (MENU_EVENT_CLOCKWISE | MENU_EVENT_ANTICCLOCKWISE | MENU_EVENT_CLICK | MENU_EVENT_DOUBLE_CLICK);
         LOG_IN("receive menuEventGrp:%d", menuEventGrp);
         menuEventGrp = 0;
 
-        if(!currentMenu || !currentMenu->menuEventProcess){
-            LOG_EOR("NULL pointer %p, %p!", currentMenu, currentMenu->menuEventProcess);
+        if(!currentMenu){
+            LOG_EOR("currentMenu is NULL");
             event = MENU_EVENT_NONE;
             continue;
         }
+        if(!currentMenu->menuEventProcess){
+            LOG_EOR("currentMenu->menuEventProcess is NULL");
+            event = MENU_EVENT_NONE;
+            continue;
+        }
+
         currentMenu->menuEventProcess(&event);
         event = MENU_EVENT_NONE;
     }
@@ -157,7 +223,7 @@ void menuEventProcessTask(void *arg)
 osThreadId menuEventProcessTaskHandle = NULL;
 int8_t startMenuEventProcess(void)
 {
-    menu_obj_t *menu = NULL;
+    const menu_obj_t *menu = NULL;
     if(NULL == (menu = getCurrentMenu())){
         LOG_EOR("getCurrentMenu is NULL");
         return -1;
@@ -176,7 +242,7 @@ int8_t startMenuEventProcess(void)
         return -1;
     }
     LOG_IN("startMenuEventProcess");
-    osThreadDef(menuEventProcess, menuEventProcessTask, osPriorityNormal, 0, 512);
+    osThreadDef(menuEventProcess, menuEventProcessTask, osPriorityAboveNormal, 0, 1024);
     menuEventProcessTaskHandle = osThreadCreate(osThread(menuEventProcess), NULL);
     if(!menuEventProcessTaskHandle){
         LOG_EOR("Create menuEventProcessTask failed");
@@ -185,7 +251,7 @@ int8_t startMenuEventProcess(void)
     return 0;
 }
 
-menu_obj_t *createMenu(char *menuName, menuEventProcess_t menuEventProcess)
+menu_obj_t *createMenu(const char *menuName, menuEventProcess_t menuEventProcess)
 {
     menu_obj_t *menu = NULL;
     CREATE_OBJ(menu, menu_obj_t, NULL);
@@ -215,7 +281,7 @@ menu_obj_t *createMenu(char *menuName, menuEventProcess_t menuEventProcess)
     return menu;
 }
 
-item_obj_t *createItem(itemType_t type, char *title, loadItemVar_t loadItemVar, ItemEventProcess_t ItemEventProcess)
+item_obj_t *createItem(itemType_t type, const char *title, loadItemVar_t loadItemVar, ItemEventProcess_t ItemEventProcess)
 {
     IS_NULL(title, NULL);
     // IS_NULL(loadItemVar, NULL);

@@ -85,5 +85,9 @@ int8_t IsEncoderKeyExti(uint16_t GPIO_Pin)
 int8_t EncoderKeyNotifyProcess(void *args)
 {
 	printf("Encoder key notify\r\n");
+	BaseType_t pxHigherPriorityTaskWoken = pdTRUE;
+	if(pdPASS != xEventGroupSetBitsFromISR(xMenuEventGrp, MENU_EVENT_CLICK, &pxHigherPriorityTaskWoken)){
+		printf("send MENU_EVENT_CLICK failed\r\n");
+	}	
 	return ENCODER_TRUE;
 }
