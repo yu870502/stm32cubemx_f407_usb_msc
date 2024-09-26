@@ -19,6 +19,8 @@
 
 #include "stm32f4xx_hal_def.h"
 
+#include "simple_scr.h"
+
 int8_t app_init(void)
 {
 	LOG_IN("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
@@ -26,7 +28,9 @@ int8_t app_init(void)
     mcu_obj_start();
 
 	Init_ST7567();
-		
+
+	init_scr();
+
 	userMenuInit();
 
 	key_init();

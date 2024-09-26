@@ -1,5 +1,5 @@
-#ifndef __MCU_TEMPERATURE_H__
-#define __MCU_TEMPERATURE_H__
+#ifndef __MCU_OBJ_H__
+#define __MCU_OBJ_H__
 
 #include "main.h"
 #include "adc.h"

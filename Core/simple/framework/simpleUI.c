@@ -22,7 +22,7 @@ int8_t clearUILine(uint8_t line)
     return 0;
 }
 
-int8_t refreshUILine(uint8_t line, char *cont, unsigned int reverse)
+int8_t refreshUILine(uint8_t line, const char *cont, unsigned int reverse)
 {
     if(line >= PAGE_MAX_LINE){
         LOG_EOR("[%s] para [line] error:%d", __func__, line);
@@ -33,9 +33,9 @@ int8_t refreshUILine(uint8_t line, char *cont, unsigned int reverse)
 		return -1;
 	}
     uint8_t len = strlen(cont);
-    if(len > ITEM_TITLE_MAX){
+    if(len > ITEM_CONTENT_LEN_MAX){
         LOG_WA("Line cont error");
-        cont[ITEM_TITLE_MAX] = 0;
+        return -1;
     }
     if(refreshDDRAMLine(line, cont, reverse)){
         LOG_EOR("refreshDDRAMLine failed");
@@ -51,7 +51,7 @@ int8_t clearScr(void)
 	return 0;
 }
 
-item_obj_t *matchSlectedItem(menu_obj_t *menu)
+item_obj_t *matchItem_selected(menu_obj_t *menu)
 {
     IS_OBJ_NOT_EXIST(menu, NULL);
     IS_NULL(menu->itemHead, NULL);
@@ -64,6 +64,23 @@ item_obj_t *matchSlectedItem(menu_obj_t *menu)
         item = item->nextItem;
     }
     LOG_WA("The selected item was not matched");
+    return NULL;
+}
+
+item_obj_t *matchItem_Name(menu_obj_t *menu, const char *itemName)
+{
+    IS_NULL(itemName, NULL);
+    IS_NULL(menu, NULL);
+    IS_NULL(menu->itemHead, NULL);    
+
+    item_obj_t *item = menu->itemHead;
+    while(item){
+        if(strstr(item->itemTitle, itemName)){
+            return item;
+        }
+        item = item->nextItem;
+    }
+    LOG_WA("The item name was not matched");
     return NULL;
 }
 
@@ -94,41 +111,60 @@ int8_t menuItemScroll(menu_obj_t *menu, uint8_t scroll)
     return 0;
 }
 
-int8_t menuItemToggleMode(menu_obj_t *menu)
+int8_t nowSlectedItemToggleMode(menu_obj_t *menu)
 {
     IS_NULL(menu, -1);
-    item_obj_t *item = matchSlectedItem(menu);
+    item_obj_t *item = matchItem_selected(menu);
     IS_NULL(item, -1);
 
-    if(ITEM_MODE_VIEW == item->mode){
-        item->mode = ITEM_MODE_SET_VAR;
-    }
-    else if(ITEM_MODE_SET_VAR == item->mode){
-        item->mode = ITEM_MODE_VIEW;
-    }
-    else{
-        LOG_EOR("item[%s] mode error", item->itemTitle);
-        return -1;
+    if(ITEM_TYPE_TITLE_VARIABLE == item->type){
+        //TODO:每次项目进入var config模式时，创建item preVar（通过获取真实值，赋值给预显示var），为了后续item event process中调整preVar，实时输出到屏幕上
+        //TODO:每次菜单退出var config模式前，销毁item preVar
+        if(ITEM_MODE_VIEW == item->mode){
+            item->mode = ITEM_MODE_CONFIG_VAR;
+            if(item->readItemVar_val){
+                item->readItemVar_val(&(item->preVar));
+            }
+            else{
+                LOG_WA("Item[%s] readItemVar_val is NULL", item->itemTitle);
+            }
+            menu->menuMode = MENU_MODE_BACKGROUND;
+        }
+        else if(ITEM_MODE_CONFIG_VAR == item->mode){
+            item->mode = ITEM_MODE_VIEW;
+            if(item->preVar){
+                if(item->preVar->val){
+                    vPortFree(item->preVar->val);   //clear var
+                    item->preVar->val = NULL;
+                }
+                vPortFree(item->preVar);
+                item->preVar = NULL;
+            }
+            menu->menuMode = MENU_MODE_VIEW;
+        }
+        else{
+            LOG_EOR("item[%s] mode error", item->itemTitle);
+            return -1;
+        }        
     }
     return 0;
 }
 
-int8_t refreshItemLine(uint8_t line, item_obj_t *item)
+int8_t refreshItemLine(uint8_t line, item_obj_t *item, const char *content)
 {
     IS_OBJ_NOT_EXIST(item, -1);
-    IS_NULL(item->itemTitle, -1);
+    IS_NULL(content, -1);
 
     if(line >= PAGE_MAX_LINE){
         LOG_EOR("[%s] para [line] error:%d", __func__, line);
         return -1;
     }
 
-    // LOG_WA("title=%s, type=%d, mode=%d", item->itemTitle, item->type, item->mode);
     unsigned int reverseMask = 0;
     if(item->itemIndex == item->parentMenu->selectedItemIndex){
-        if(ITEM_TYPE_TITLE_VARIABLE == item->type){
-            const char *pos = strchr(item->itemTitle, ITEM_TITLE_DELIMITER);
-            uint8_t titleLen = pos - item->itemTitle;
+        if(ITEM_TYPE_TITLE_VARIABLE == item->type || ITEM_TYPE_TITLE == item->type){
+            const char *pos = strchr(content, ITEM_TITLE_DELIMITER);
+            uint8_t titleLen = pos - content;
             // LOG_WA("titleLen=%d", titleLen);
             uint8_t i = 0;
             reverseMask = 0;
@@ -139,21 +175,21 @@ int8_t refreshItemLine(uint8_t line, item_obj_t *item)
             }
             else{
                 uint8_t offset = titleLen + 1;   //title:var
-                titleLen = ITEM_TITLE_MAX - offset;
+                titleLen = ITEM_CONTENT_LEN_MAX - offset;
                 for(i = 0; i < titleLen; i++){
                     reverseMask |= (0x8000 >> offset + i);
                 }
             }
         }
-        else
-            reverseMask = 0xffff;
+        else{
+            LOG_WA("Unknow item type");
+        }
     }
     else{
         reverseMask = 0;
     }
 
-    // LOG_WA("reverseMask=%#X", reverseMask);
-    refreshUILine(line, item->itemTitle, reverseMask);
+    refreshUILine(line, content, reverseMask);
     return 0;
 }
 
@@ -176,10 +212,41 @@ int8_t refreshMenuPage(menu_obj_t *menu)
 
     clearScr();
     uint8_t i;
+    char itemContent[ITEM_CONTENT_LEN_MAX + 1] = {0};
+    item_variable_t *var = NULL;
     for(i = 0; item && i < PAGE_MAX_LINE; i++){
-        if(item->loadItemVar)
-            item->loadItemVar(item);
-        refreshItemLine(i, item);
+        if(ITEM_MODE_CONFIG_VAR == item->mode){
+            var = item->preVar;
+        }
+        else if(ITEM_MODE_VIEW == item->mode && item->readItemVar_val){
+            item->readItemVar_val(&var);
+        }
+
+        if(var){
+            if(VARIABLE_VALUE_TYPE_INT == var->type){
+                snprintf(itemContent, ITEM_CONTENT_LEN_MAX + 1, item->itemTitle, *((int *)(var->val)));
+            }
+            else if(VARIABLE_VALUE_TYPE_FLOAT == var->type){
+                snprintf(itemContent, ITEM_CONTENT_LEN_MAX + 1, item->itemTitle, *((float *)(var->val)));  
+            }
+            else if(VARIABLE_VALUE_TYPE_CHAR == var->type){
+                snprintf(itemContent, ITEM_CONTENT_LEN_MAX + 1, item->itemTitle, (char *)(var->val));  
+            }
+            if(ITEM_MODE_VIEW == item->mode){
+                if(var->val){
+                    vPortFree(var->val);
+                    var->val = NULL;
+                }
+                vPortFree(var);
+                var = NULL;
+            }
+        }
+        else{
+            snprintf(itemContent, ITEM_CONTENT_LEN_MAX + 1, "%s", item->itemTitle);  
+        }
+        var = NULL;
+
+        refreshItemLine(i, item, itemContent);
         item = item->nextItem;
     }
     return 0;
@@ -192,7 +259,7 @@ menu_obj_t *getCurrentMenu(void)
 }
 
 EventGroupHandle_t xMenuEventGrp;
-void menuEventProcessTask(void *arg)
+void menuEventWaitTask(void *arg)
 {
     EventBits_t menuEventGrp;
     uint8_t event;
@@ -206,21 +273,41 @@ void menuEventProcessTask(void *arg)
 
         if(!currentMenu){
             LOG_EOR("currentMenu is NULL");
-            event = MENU_EVENT_NONE;
-            continue;
-        }
-        if(!currentMenu->menuEventProcess){
-            LOG_EOR("currentMenu->menuEventProcess is NULL");
-            event = MENU_EVENT_NONE;
-            continue;
+            goto next;
         }
 
-        currentMenu->menuEventProcess(&event);
+        if(MENU_MODE_VIEW == currentMenu->menuMode){
+            if(!currentMenu->menuEventProcess){
+                LOG_EOR("currentMenu->menuEventProcess is NULL");
+                goto next;
+            }
+            else{
+                currentMenu->menuEventProcess(currentMenu, &event);
+            }
+        }
+        else if(MENU_MODE_BACKGROUND == currentMenu->menuMode){
+            item_obj_t *item = matchItem_selected(currentMenu);
+            if(!item){
+                LOG_WA("match now selected item failed");
+                goto next;
+            }
+            if(!item->ItemEventProcess){
+                LOG_EOR("Item event process is NULL");
+            }
+            else{
+                item->ItemEventProcess(event, item->preVar);
+            }
+        }
+        if(MENU_EVENT_CLICK == event){
+            nowSlectedItemToggleMode(currentMenu);   //TODO:如果默认只有两种模式，可以这样切换，如果是多个了模式，则参数要指明具体模式。
+        }
+        refreshMenuPage(currentMenu);
+next:        
         event = MENU_EVENT_NONE;
     }
 }
 
-osThreadId menuEventProcessTaskHandle = NULL;
+osThreadId menuEventWaitTaskHandle = NULL;
 int8_t startMenuEventProcess(void)
 {
     const menu_obj_t *menu = NULL;
@@ -232,7 +319,7 @@ int8_t startMenuEventProcess(void)
         LOG_EOR("Current dev is in an inactive state");
         return -1; 
     }
-    if(menuEventProcessTaskHandle){
+    if(menuEventWaitTaskHandle){
         LOG_WA("MenuEventProcess already running");
         return 1;
     }
@@ -242,10 +329,10 @@ int8_t startMenuEventProcess(void)
         return -1;
     }
     LOG_IN("startMenuEventProcess");
-    osThreadDef(menuEventProcess, menuEventProcessTask, osPriorityAboveNormal, 0, 1024);
-    menuEventProcessTaskHandle = osThreadCreate(osThread(menuEventProcess), NULL);
-    if(!menuEventProcessTaskHandle){
-        LOG_EOR("Create menuEventProcessTask failed");
+    osThreadDef(menuEventProcess, menuEventWaitTask, osPriorityAboveNormal, 0, 1024);
+    menuEventWaitTaskHandle = osThreadCreate(osThread(menuEventProcess), NULL);
+    if(!menuEventWaitTaskHandle){
+        LOG_EOR("Create menuEventWaitTask failed");
         return -1;
     }
     return 0;
@@ -270,6 +357,7 @@ menu_obj_t *createMenu(const char *menuName, menuEventProcess_t menuEventProcess
         LOG_WA("[%s] menuName is NULL", __FUNCTION__);
 
     menu->state = MENU_STATE_SLEEP;
+    menu->menuMode = MENU_MODE_VIEW;
     menu->itemTotal = 0;
     menu->itemHead = NULL;
     menu->currentPageIndex = 0;
@@ -281,7 +369,7 @@ menu_obj_t *createMenu(const char *menuName, menuEventProcess_t menuEventProcess
     return menu;
 }
 
-item_obj_t *createItem(itemType_t type, const char *title, loadItemVar_t loadItemVar, ItemEventProcess_t ItemEventProcess)
+item_obj_t *createItem(itemType_t type, const char *title, readItemVar_val_t readItemVar_val, ItemEventProcess_t ItemEventProcess)
 {
     IS_NULL(title, NULL);
     // IS_NULL(loadItemVar, NULL);
@@ -292,7 +380,7 @@ item_obj_t *createItem(itemType_t type, const char *title, loadItemVar_t loadIte
     item->type = type;
     item->mode = ITEM_MODE_VIEW;
     strncpy(item->itemTitle, title, strlen(title));
-    item->loadItemVar = loadItemVar;
+    item->readItemVar_val = readItemVar_val;
     item->ItemEventProcess = ItemEventProcess;
     item->itemIndex = 0;
     item->nextItem = NULL;

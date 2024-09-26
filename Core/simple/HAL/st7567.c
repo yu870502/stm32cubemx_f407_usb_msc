@@ -121,7 +121,7 @@ int8 clearDDRAMLine(uchar line)
 	return 0;
 }
 
-int8 refreshDDRAMLine(uchar line, char *cont, unsigned int reverse)
+int8 refreshDDRAMLine(uchar line, const char *cont, unsigned int reverse)
 {
 	if(line >= (DDRAM_PAGES_MAX >> 1)){
 		printf("[%s] param[line] error:%d\r\n", __FUNCTION__, line);
