@@ -25,6 +25,8 @@ int8_t app_init(void)
 {
 	LOG_IN("Build data:%s, time:%s\r\n", __DATE__, __TIME__);
 
+	init_encoder();
+
     mcu_obj_start();
 
 	Init_ST7567();

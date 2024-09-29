@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "cmsis_os.h"
-#include "simpleUI.h"
+#include "simple_menu.h"
 #include "simple_log.h"
 #include "simple_obj.h"
 #include "st7567.h"

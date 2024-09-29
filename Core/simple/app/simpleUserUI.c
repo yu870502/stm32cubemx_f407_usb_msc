@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "main.h"
-#include "simpleUI.h"
+#include "simple_menu.h"
 #include "simpleUserUI.h"
 
 #include "simple_log.h"
@@ -194,9 +194,6 @@ int8_t menuEventProcess(menu_obj_t *menu, uint8_t *event)
         case MENU_EVENT_ANTICCLOCKWISE:
             menuItemScroll(menu, MENU_ITME_UP_SCROLL);
         break;
-
-        default:
-            printf("Unknow menu event:%d\r\n", *event);break;
     }
     return 0;
 }

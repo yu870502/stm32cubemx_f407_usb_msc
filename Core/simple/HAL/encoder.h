@@ -28,9 +28,9 @@ typedef struct __encoder_object_st
 
 }encoder_object_t;
 
-int8_t IsEncoderA_Exti(uint16_t GPIO_Pin);
-int8_t EncoderB_Process(void);
 int8_t IsEncoderKeyExti(uint16_t GPIO_Pin);
 int8_t EncoderKeyNotifyProcess(void *args);
+
+int8_t init_encoder(void);
 
 #endif

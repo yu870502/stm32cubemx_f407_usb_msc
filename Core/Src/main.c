@@ -23,6 +23,7 @@
 #include "fatfs.h"
 #include "i2c.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "usb_host.h"
 #include "gpio.h"
@@ -37,6 +38,7 @@
 #include "encoder.h"
 
 #include "app.h"
+#include "simple_log.h"
 
 uint8_t RxData = 0;
 
@@ -80,10 +82,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 	if(IsPaj7620Exti(GPIO_Pin)){
 		gestureEXTINotify();
-	}
-
-	if(IsEncoderA_Exti(GPIO_Pin)){
-		EncoderB_Process();
 	}
 
 	if(IsEncoderKeyExti(GPIO_Pin)){
@@ -133,6 +131,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_ADC1_Init();
+  MX_TIM3_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 	app_init();
 
@@ -209,7 +209,7 @@ void def_printf(const char *format, ...)
   va_list args;
   char pbuff[256] = {0};
 
-  va_start(args, format);	// 初始化args，获取format以后的参数（包括format�?
+  va_start(args, format);	// 初始化args，获取format以后的参数（包括format�???
 
   vsprintf(pbuff, format, args);
   printf("%s", pbuff);
@@ -229,7 +229,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 //   def_printf("%c", RxData);
 //   HAL_UART_Transmit(&huart1, &RxData, 1,0xFFFF);				//将收到的信息发出
-//   while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);	//测UART发�?�结
+//   while(HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY);	//测UART发�?�结
 	
 //   HAL_UART_Receive_IT(&huart1, (uint8_t *)&RxData, 1);
 }
@@ -252,7 +252,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  if (htim->Instance == TIM6) {
+    // LOG_IN("tim6 update");
+  }  
+   
   /* USER CODE END Callback 1 */
 }
 

@@ -1,5 +1,4 @@
 *.crf
-*.uvoptx
 *.yul
 *.iex
 *.map
@@ -16,4 +15,16 @@
 .vscode/
 *.code-workspace
 .mxproject
-*.uvprojx
+
+# uvoptx文件记录了工程的配置选项，如下载器的类型、变量跟踪配置、断点位置以及当前已打开的文件等
+*.uvoptx
+
+# uvguix文件记录了MDK软件的GUI布局，如代码编辑区窗口的大小、编译输出提示窗口的位置等等。
+*.uvguix
+
+# .uvprojx文件必须存在，git/svn时必须上传，记录了整个工程的结构，如芯片类型、工程包含了哪些源文件等内容，用文本编辑器可以打开，为xml格式代码
+# *.uvprojx 
+
+# uvprojx文件是最重要的，删掉它我们就无法再正常打开工程了。
+# 而uvoptx及uvguix文件并不是必须的，可以删除，重新使用MDK打开uvprojx工程文件后，会以默认参数重新创建uvoptx及uvguix文件。
+# 所以当使用Git/SVN等代码管理的时候，往往只保留uvprojx文件

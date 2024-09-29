@@ -67,11 +67,6 @@ void Error_Handler(void);
 #define SPI_RST_GPIO_Port GPIOA
 #define SPI_CS_Pin GPIO_PIN_6
 #define SPI_CS_GPIO_Port GPIOA
-#define Encoder_A_Pin GPIO_PIN_10
-#define Encoder_A_GPIO_Port GPIOE
-#define Encoder_A_EXTI_IRQn EXTI15_10_IRQn
-#define Encoder_B_Pin GPIO_PIN_12
-#define Encoder_B_GPIO_Port GPIOE
 #define Encoder_Key_Pin GPIO_PIN_14
 #define Encoder_Key_GPIO_Port GPIOE
 #define Encoder_Key_EXTI_IRQn EXTI15_10_IRQn

@@ -1,5 +1,5 @@
-#ifndef __SIMPLE_UI__
-#define __SIMPLE_UI__
+#ifndef __SIMPLE_MENU__
+#define __SIMPLE_MENU__
 
 #include "main.h"
 #include "cmsis_os.h"
